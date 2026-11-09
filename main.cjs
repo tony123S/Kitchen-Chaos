@@ -7,7 +7,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
 
 // Packaged builds ship the native runtime as an extra resource (see the
 // official electron-quickstart sample). During `npm start` this is skipped.
@@ -58,7 +58,11 @@ function createWindow() {
   bindSmartSpectraIpc(win);
 
   // The app only ever shows its own local page.
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  // Links such as the Presage privacy page open in the normal web browser.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://')) shell.openExternal(url);
+    return { action: 'deny' };
+  });
   win.webContents.on('will-navigate', (event) => event.preventDefault());
 
   win.loadFile(path.join(__dirname, 'index.html'));

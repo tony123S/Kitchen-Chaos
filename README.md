@@ -8,9 +8,10 @@ next step, look surprised to see the step again. Expressions are detected live b
 
 Built for the Presage SmartSpectra Challenge (#presagechallenge).
 
-> **Status: Phase 1 (SDK check).** This version is a single screen that proves the SDK
-> integration works: live camera, SDK status, the real expression scores, and what the
-> expression controls would do. The cooking screens come in the next phases.
+> **Status: Phase 2.** Welcome, How to Use, Recipe Selection, Recipe Details and Privacy
+> screens are done, with both full recipes. **Start Cooking** currently opens the camera
+> check screen (live camera, SDK status, real expression scores, and what the controls
+> would do). Cooking mode with expression controls comes in Phase 3.
 
 ## Requirements
 
@@ -43,8 +44,8 @@ VS Code terminal on macOS/Linux: if the window never opens, run `env -u ELECTRON
 npm test
 ```
 
-The tests cover the expression controls (smoothing, hold time, cooldown, re-arm) and the
-decoding of real SDK metrics packets. They need no camera.
+The tests cover the expression controls (smoothing, hold time, cooldown, re-arm), the
+decoding of real SDK metrics packets, and the recipe data and screens. They need no camera.
 
 ## How SmartSpectra is used
 
@@ -80,7 +81,11 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
 | `src/camera.js` | The only file that talks to SmartSpectra |
 | `src/reading.js` | Turns one SDK metrics packet into expression scores |
 | `src/controls.js` | Turns scores into "next" / "repeat" (pure logic, unit-tested) |
-| `src/app.js` | The screen |
+| `src/recipes.js` | Recipe data only (ingredients, equipment, safety, steps, timers). Add a recipe here |
+| `src/views.js` | Builds the recipe card and recipe details screens from the data |
+| `src/art.js` | Chef mascot and food illustrations, drawn as SVG in code |
+| `src/sdk-check.js` | Camera check screen |
+| `src/app.js` | Screen switching; wires everything together |
 | `build.mjs` | Bundles the window code and preload with esbuild |
 
 ## Privacy

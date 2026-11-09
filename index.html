@@ -4,53 +4,146 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; media-src blob:;">
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; worker-src 'self' blob:; media-src blob:;">
   <title>Kitchen Chaos</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="top">
-    <h1>Kitchen Chaos <span class="tag">SDK check</span></h1>
-    <p>Phase 1: confirm SmartSpectra can see your expressions before we cook.</p>
+  <header class="appbar" id="appbar" hidden>
+    <button class="brand" data-go="welcome" aria-label="Kitchen Chaos home">🍳 Kitchen Chaos</button>
+    <nav>
+      <button class="link" data-go="recipes">Recipes</button>
+      <button class="link" data-go="howto">How to Use</button>
+      <button class="link" data-go="privacy">Privacy</button>
+    </nav>
   </header>
 
-  <main class="check">
-    <section class="card camera-card">
-      <div class="preview-wrap">
-        <video id="preview" autoplay muted playsinline hidden></video>
-        <div id="preview-empty" class="preview-empty">
-          The camera is off. It only turns on when you press Start camera.
+  <!-- Screen 1: Welcome -->
+  <section class="screen welcome" id="screen-welcome" data-screen="welcome">
+    <div class="welcome-inner">
+      <div id="welcome-chef" class="welcome-chef"></div>
+      <h1 class="logo">Kitchen <span>Chaos</span></h1>
+      <p class="tagline">Cook Without Touching Your Screen!</p>
+      <p class="lead">Follow a recipe step by step. Smile to move on, look surprised to see a step again. Your hands stay free for cooking.</p>
+      <div class="buttons center">
+        <button class="btn primary big" data-go="recipes">Start Cooking</button>
+        <button class="btn big" data-go="howto">How to Use</button>
+      </div>
+      <button class="link" data-go="privacy">Privacy information</button>
+    </div>
+  </section>
+
+  <!-- Screen 2: How to Use -->
+  <section class="screen" id="screen-howto" data-screen="howto" hidden>
+    <h1>How to use Kitchen Chaos</h1>
+    <p class="lead">Four simple steps. You can come back to this page any time from the top menu.</p>
+    <ol class="howto-steps">
+      <li class="card howto-card">
+        <div class="howto-art" data-art="choose"></div>
+        <h2><span class="num">1</span> Choose your recipe</h2>
+        <p>Pick one of the two dishes: Fluffy Pancakes or Spaghetti Bolognese. Check the ingredients and equipment before you start.</p>
+      </li>
+      <li class="card howto-card">
+        <div class="howto-art" data-art="camera"></div>
+        <h2><span class="num">2</span> Allow camera access</h2>
+        <p>The camera lets SmartSpectra see your facial expressions while you cook. It turns on only when you say so, and nothing is recorded or saved.</p>
+      </li>
+      <li class="card howto-card">
+        <div class="howto-art" data-art="read"></div>
+        <h2><span class="num">3</span> Follow the instructions</h2>
+        <p>Each step shows exactly what to do, the amounts you need, and a timer when you need to wait.</p>
+      </li>
+      <li class="card howto-card">
+        <div class="howto-art" data-art="control"></div>
+        <h2><span class="num">4</span> Control without touching</h2>
+        <p>Use your face instead of your fingers. The guide is always on screen, so there is nothing to remember.</p>
+        <ul class="expr-guide">
+          <li><span class="emoji">😊</span><b>Smile</b> Next step</li>
+          <li><span class="emoji">😲</span><b>Surprise</b> Repeat this step</li>
+          <li><span class="emoji">😐</span><b>Neutral</b> Stay on this step</li>
+        </ul>
+        <p class="small">Hold the expression for about a second. Big buttons and keyboard keys always work too, so you never have to make a face you are not comfortable with.</p>
+      </li>
+    </ol>
+    <div class="buttons center">
+      <button class="btn primary big" data-go="recipes">Got it, choose a recipe</button>
+    </div>
+  </section>
+
+  <!-- Screen 3: Recipe Selection -->
+  <section class="screen" id="screen-recipes" data-screen="recipes" hidden>
+    <h1>What are we cooking today?</h1>
+    <p class="lead">Pick a dish. You can switch any time.</p>
+    <div class="recipe-grid" id="recipe-grid"></div>
+  </section>
+
+  <!-- Screen 4: Recipe Details -->
+  <section class="screen" id="screen-details" data-screen="details" hidden>
+    <button class="link back" data-go="recipes">← All recipes</button>
+    <div id="details"></div>
+  </section>
+
+  <!-- Privacy -->
+  <section class="screen" id="screen-privacy" data-screen="privacy" hidden>
+    <h1>Privacy and your camera</h1>
+    <div class="card prose">
+      <h2>Why the camera is needed</h2>
+      <p>Kitchen Chaos uses your camera so the Presage SmartSpectra SDK can read your facial expressions. A smile moves to the next step and a surprised look repeats the step, so you do not have to touch the screen with messy hands.</p>
+      <h2>When the camera is on</h2>
+      <p>Only after you agree on the camera screen and press Start. It turns off when you press Stop camera, leave cooking mode, or close the app. Your computer's camera light shows when it is on.</p>
+      <h2>How SmartSpectra processes it</h2>
+      <p>According to Presage's documentation, all SmartSpectra measurements are computed on your device. The SDK contacts Presage's server to check the API key and subscription.</p>
+      <h2>What is stored or shared</h2>
+      <p>Kitchen Chaos does not record, save or upload video, and keeps no history of your expressions. Expression scores are used for a moment to decide "next" or "repeat" and then thrown away. Only your music and sound settings are saved on this computer.</p>
+      <h2>SDK telemetry</h2>
+      <p>The SmartSpectra SDK can send Presage one anonymous summary per session (SDK version, platform, frame counts, error codes). It never includes video, measurement values or user identifiers. Kitchen Chaos switches this off by default. <a href="https://smartspectra.presagetech.com/docs/telemetry-and-privacy" target="_blank" rel="noopener">Read Presage's telemetry page</a>.</p>
+      <h2>Not a medical device</h2>
+      <p>Kitchen Chaos makes no health or emotion claims. Expressions are used only as buttons.</p>
+    </div>
+  </section>
+
+  <!-- Screen 5 (Phase 3 will turn this into camera setup): SDK check -->
+  <section class="screen" id="screen-camera" data-screen="camera" hidden>
+    <h1>Camera check <span class="tag">Phase 1 SDK check</span></h1>
+    <p class="lead" id="camera-recipe-note">Confirm SmartSpectra can see your expressions. Cooking mode arrives in the next update.</p>
+    <div class="check">
+      <section class="card camera-card">
+        <div class="preview-wrap">
+          <video id="preview" autoplay muted playsinline hidden></video>
+          <div id="preview-empty" class="preview-empty">
+            The camera is off. It only turns on when you press Start camera.
+          </div>
         </div>
-      </div>
-      <p id="status" class="status" data-state="idle">Camera off</p>
-      <p id="hint" class="hint">Look at the camera and keep your face inside the frame.</p>
-      <p id="error" class="error" hidden></p>
-      <div class="buttons">
-        <button id="btn-start" class="btn primary">Start camera</button>
-        <button id="btn-stop" class="btn" disabled>Stop camera</button>
-      </div>
-      <p class="small">Video stays on this computer. Kitchen Chaos does not record or save it.
-        SDK telemetry is <strong id="telemetry">off</strong>.</p>
-    </section>
+        <p id="status" class="status" data-state="idle">Camera off</p>
+        <p id="hint" class="hint">Look at the camera and keep your face inside the frame.</p>
+        <p id="error" class="error" hidden></p>
+        <div class="buttons">
+          <button id="btn-start" class="btn primary">Start camera</button>
+          <button id="btn-stop" class="btn" disabled>Stop camera</button>
+        </div>
+        <p class="small">Video stays on this computer. Kitchen Chaos does not record or save it.
+          SDK telemetry is <strong id="telemetry">off</strong>.</p>
+      </section>
 
-    <section class="card">
-      <h2>Live expression scores</h2>
-      <p class="small">Straight from the SmartSpectra SDK (confidence 0 to 100).
-        Packets received: <strong id="packets">0</strong> · SDK says stable: <strong id="stable">-</strong></p>
-      <div id="bars" class="bars"></div>
+      <section class="card">
+        <h2>Live expression scores</h2>
+        <p class="small">Straight from the SmartSpectra SDK (confidence 0 to 100).
+          Packets received: <strong id="packets">0</strong> · SDK says stable: <strong id="stable">-</strong></p>
+        <div id="bars" class="bars"></div>
 
-      <h2>What the controls would do</h2>
-      <div class="guide">
-        <span>😊 HAPPY: next step</span>
-        <span>😲 SURPRISE: repeat step</span>
-        <span>😐 NEUTRAL: stay</span>
-      </div>
-      <p>Current: <strong id="candidate">none (staying on this step)</strong></p>
-      <div class="hold"><span id="hold"></span></div>
-      <p id="banner" class="banner" hidden></p>
-      <ol id="log" class="log" reversed></ol>
-    </section>
-  </main>
+        <h2>What the controls would do</h2>
+        <div class="guide">
+          <span>😊 HAPPY: next step</span>
+          <span>😲 SURPRISE: repeat step</span>
+          <span>😐 NEUTRAL: stay</span>
+        </div>
+        <p>Current: <strong id="candidate">none (staying on this step)</strong></p>
+        <div class="hold"><span id="hold"></span></div>
+        <p id="banner" class="banner" hidden></p>
+        <ol id="log" class="log" reversed></ol>
+      </section>
+    </div>
+  </section>
 
   <script src="dist/app.bundle.js"></script>
 </body>

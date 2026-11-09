@@ -1,105 +1,52 @@
-// Phase 1: SmartSpectra SDK check screen.
-// Shows the live camera, SDK status, the real expression scores, and what
-// the expression controls would do. No simulated data anywhere.
+// App entry: switches between screens and wires the pieces together.
 
-import { createCamera } from './camera.js';
-import { createExpressionControls } from './controls.js';
+import { RECIPES, getRecipe } from './recipes.js';
+import { recipeCardHtml, recipeDetailsHtml } from './views.js';
+import { chefSvg, HOWTO_ART } from './art.js';
+import { initSdkCheck } from './sdk-check.js';
 
 const $ = (id) => document.getElementById(id);
-const SHOWN = ['HAPPY', 'SURPRISE', 'NEUTRAL', 'SAD', 'ANGRY', 'FEAR', 'DISGUST', 'CONTEMPT'];
-const STATUS_TEXT = {
-  idle: 'Camera off',
-  starting: 'Starting camera...',
-  running: 'Camera ready: detecting expression',
-  detected: 'Expression detected!',
-  stopped: 'Camera off',
-  error: 'Camera unavailable',
-};
-const ACTION_TEXT = {
-  next: '😊 Happy expression detected! Next step.',
-  repeat: '😲 Surprise detected! Showing the instruction again.',
-};
+const state = { screen: 'welcome', recipeId: null };
+let camera = null;
 
-const controls = createExpressionControls();
-let packets = 0;
-let detectedTimer = null;
-
-function setStatus(status) {
-  $('status').textContent = STATUS_TEXT[status] ?? status;
-  $('status').dataset.state = status;
-  $('btn-start').disabled = status === 'starting' || status === 'running' || status === 'detected';
-  $('btn-stop').disabled = !(status === 'starting' || status === 'running' || status === 'detected');
+export async function show(screen) {
+  // Leaving the camera screen always switches the camera off.
+  if (state.screen === 'camera' && screen !== 'camera' && camera) await camera.stop();
+  state.screen = screen;
+  for (const el of document.querySelectorAll('[data-screen]')) el.hidden = el.dataset.screen !== screen;
+  $('appbar').hidden = screen === 'welcome';
+  window.scrollTo(0, 0);
 }
 
-function buildBars() {
-  $('bars').innerHTML = SHOWN.map((name) => `
-    <div class="bar-row" data-name="${name}">
-      <span class="bar-label">${name}</span>
-      <span class="bar"><span class="bar-fill" id="fill-${name}"></span></span>
-      <span class="bar-value" id="value-${name}">-</span>
-    </div>`).join('');
+function openRecipe(id) {
+  const recipe = getRecipe(id);
+  if (!recipe) return;
+  state.recipeId = id;
+  $('details').innerHTML = recipeDetailsHtml(recipe);
+  show('details');
 }
 
-const camera = createCamera({
-  onStatus: setStatus,
-  onPreview: (stream) => {
-    const video = $('preview');
-    video.srcObject = stream;
-    video.hidden = !stream;
-    if (stream) video.play().catch(() => {});
-    $('preview-empty').hidden = Boolean(stream);
-  },
-  onHint: (hint, faceOk) => {
-    $('hint').textContent = hint;
-    $('hint').dataset.ok = String(faceOk);
-  },
-  onError: (message) => {
-    $('error').textContent = message;
-    $('error').hidden = false;
-  },
-  onReading: (reading) => {
-    packets += 1;
-    $('packets').textContent = String(packets);
-    $('stable').textContent = reading.stable ? 'yes' : 'no';
-    for (const name of SHOWN) {
-      const value = reading.scores[name];
-      $(`fill-${name}`).style.width = `${Math.max(0, Math.min(100, value ?? 0))}%`;
-      $(`value-${name}`).textContent = value === undefined ? '-' : value.toFixed(0);
+function init() {
+  $('welcome-chef').innerHTML = chefSvg('happy');
+  for (const el of document.querySelectorAll('[data-art]')) el.innerHTML = HOWTO_ART[el.dataset.art] ?? '';
+  $('recipe-grid').innerHTML = RECIPES.map(recipeCardHtml).join('');
+  camera = initSdkCheck();
+
+  document.addEventListener('click', (event) => {
+    const go = event.target.closest('[data-go]');
+    if (go) return show(go.dataset.go);
+    const recipe = event.target.closest('[data-recipe]');
+    if (recipe) return openRecipe(recipe.dataset.recipe);
+    const start = event.target.closest('[data-start]');
+    if (start) {
+      const r = getRecipe(start.dataset.start);
+      $('camera-recipe-note').textContent =
+        `Next up: ${r.name}. First, confirm SmartSpectra can see your expressions. Cooking mode arrives in the next update.`;
+      return show('camera');
     }
-    const out = controls.update(reading, performance.now());
-    $('hold').style.width = `${Math.round(out.holdProgress * 100)}%`;
-    $('candidate').textContent = out.candidate
-      ? `${out.candidate}${out.waitingToRelax ? ' (relax your face to use it again)' : ''}`
-      : 'none (staying on this step)';
-    if (out.action) showAction(out.action);
-  },
-});
-
-function showAction(action) {
-  const log = $('log');
-  const item = document.createElement('li');
-  item.textContent = `${new Date().toLocaleTimeString()}  ${ACTION_TEXT[action]}`;
-  log.prepend(item);
-  $('banner').textContent = ACTION_TEXT[action];
-  $('banner').hidden = false;
-  setStatus('detected');
-  clearTimeout(detectedTimer);
-  detectedTimer = setTimeout(() => {
-    $('banner').hidden = true;
-    if (camera.isRunning()) setStatus('running');
-  }, 1800);
+    return undefined;
+  });
+  window.addEventListener('beforeunload', () => camera && camera.stop());
 }
 
-$('btn-start').addEventListener('click', async () => {
-  $('error').hidden = true;
-  packets = 0;
-  controls.reset();
-  const config = await window.kitchenChaos.getConfig();
-  $('telemetry').textContent = config.telemetry ? 'on' : 'off';
-  await camera.start(config);
-});
-$('btn-stop').addEventListener('click', () => camera.stop());
-window.addEventListener('beforeunload', () => camera.stop());
-
-buildBars();
-setStatus('idle');
+init();
