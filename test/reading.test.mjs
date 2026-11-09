@@ -1,0 +1,28 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import messages from '@smartspectra/node-sdk/messages';
+import { readExpression, expressionName } from '../src/reading.js';
+
+const { Metrics } = messages;
+const encode = (obj) => Metrics.encode(obj).finish();
+
+test('maps SDK expression types to names', () => {
+  assert.equal(expressionName(5), 'HAPPY');
+  assert.equal(expressionName(8), 'SURPRISE');
+  assert.equal(expressionName(6), 'NEUTRAL');
+});
+
+test('reads the newest expression scores from a packet', () => {
+  const buf = encode({ face: { expression: [
+    { stable: false, scores: [{ type: 5, confidence: 20 }] },
+    { stable: true, scores: [{ type: 5, confidence: 82.5 }, { type: 6, confidence: 10 }, { type: 8, confidence: 3 }] },
+  ] } });
+  assert.deepEqual(readExpression(buf, true), {
+    faceOk: true, stable: true, scores: { HAPPY: 82.5, NEUTRAL: 10, SURPRISE: 3 },
+  });
+});
+
+test('returns null when a packet has no expression data', () => {
+  assert.equal(readExpression(encode({ face: { blinking: [{ detected: true }] } }), true), null);
+  assert.equal(readExpression(encode({}), true), null);
+});

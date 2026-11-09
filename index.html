@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; media-src blob:;">
+  <title>Kitchen Chaos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Kitchen Chaos <span class="tag">SDK check</span></h1>
+    <p>Phase 1: confirm SmartSpectra can see your expressions before we cook.</p>
+  </header>
+
+  <main class="check">
+    <section class="card camera-card">
+      <div class="preview-wrap">
+        <video id="preview" autoplay muted playsinline hidden></video>
+        <div id="preview-empty" class="preview-empty">
+          The camera is off. It only turns on when you press Start camera.
+        </div>
+      </div>
+      <p id="status" class="status" data-state="idle">Camera off</p>
+      <p id="hint" class="hint">Look at the camera and keep your face inside the frame.</p>
+      <p id="error" class="error" hidden></p>
+      <div class="buttons">
+        <button id="btn-start" class="btn primary">Start camera</button>
+        <button id="btn-stop" class="btn" disabled>Stop camera</button>
+      </div>
+      <p class="small">Video stays on this computer. Kitchen Chaos does not record or save it.
+        SDK telemetry is <strong id="telemetry">off</strong>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Live expression scores</h2>
+      <p class="small">Straight from the SmartSpectra SDK (confidence 0 to 100).
+        Packets received: <strong id="packets">0</strong> · SDK says stable: <strong id="stable">-</strong></p>
+      <div id="bars" class="bars"></div>
+
+      <h2>What the controls would do</h2>
+      <div class="guide">
+        <span>😊 HAPPY: next step</span>
+        <span>😲 SURPRISE: repeat step</span>
+        <span>😐 NEUTRAL: stay</span>
+      </div>
+      <p>Current: <strong id="candidate">none (staying on this step)</strong></p>
+      <div class="hold"><span id="hold"></span></div>
+      <p id="banner" class="banner" hidden></p>
+      <ol id="log" class="log" reversed></ol>
+    </section>
+  </main>
+
+  <script src="dist/app.bundle.js"></script>
+</body>
+</html>
