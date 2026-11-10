@@ -62,11 +62,42 @@ const ERROR_TEXT = {
  * @param {(hint: string, faceOk: boolean) => void} handlers.onHint
  * @param {(message: string, kind: 'camera'|'sdk') => void} handlers.onError
  */
+// Short internet or server hiccups: try again by ourselves a few times.
+const RETRY_CODES = new Set([SmartSpectraErrorCode.kNetworkError, SmartSpectraErrorCode.kServerError]);
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 3000;
+
 export function createCamera(handlers) {
   let sdk = null;
   let faceOk = false;
+  let stopping = Promise.resolve(); // the previous session's shutdown
+  let lastConfig = null;
+  let retries = 0;
+  let retryTimer = null;
+  let wanted = false; // true while the cook wants the camera on
+  let retryPending = false;
 
-  async function start({ apiKey, telemetry = false }) {
+  function scheduleRetry(code) {
+    if (!wanted || !RETRY_CODES.has(code) || retries >= MAX_RETRIES) return false;
+    retries += 1;
+    retryPending = true;
+    handlers.onStatus('starting');
+    handlers.onHint(`Connection to SmartSpectra dropped. Reconnecting (try ${retries} of ${MAX_RETRIES})...`, false);
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => { retryPending = false; if (wanted) start(lastConfig, { retry: true }); }, RETRY_DELAY_MS);
+    return true;
+  }
+
+  async function start(config, { retry = false } = {}) {
+    const { apiKey, telemetry = false } = config;
+    if (sdk) return true; // already running or starting
+    if (!retry) retries = 0;
+    wanted = true;
+    lastConfig = config;
+    // Starting a new session while the last one is still shutting down can
+    // make the SDK fail, so always wait for the previous stop to finish.
+    await stopping;
+    if (sdk || !wanted) return Boolean(sdk);
     if (!apiKey) {
       handlers.onError('SDK connection error: no API key. Add SMARTSPECTRA_API_KEY to your .env file.', 'sdk');
       handlers.onStatus('error');
@@ -78,28 +109,40 @@ export function createCamera(handlers) {
       return false;
     }
     handlers.onStatus('starting');
-    sdk = new SmartSpectraSDK({
+    const me = new SmartSpectraSDK({
       apiKey,
       requestedMetrics: [...faceMetrics],
       enableTelemetry: telemetry,
     });
+    sdk = me;
+    const current = () => sdk === me; // ignore events from an older session
 
-    sdk.on('streamAvailable', (stream) => handlers.onPreview(stream));
-    sdk.on('processingStatus', (status) => {
+    me.on('streamAvailable', (stream) => { if (current()) handlers.onPreview(stream); });
+    me.on('processingStatus', (status) => {
+      if (!current()) return;
       if (status === ProcessingStatus.kRunning) handlers.onStatus('running');
       else if (status === ProcessingStatus.kError) handlers.onStatus('error');
     });
-    sdk.on('validationStatus', (code, _ts, hint) => {
+    me.on('validationStatus', (code, _ts, hint) => {
+      if (!current()) return;
       faceOk = !FACE_PROBLEMS.has(code);
       handlers.onHint(HINTS[code] ?? hint ?? '', faceOk);
     });
-    sdk.on('metrics', (buf) => {
+    me.on('metrics', (buf) => {
+      if (!current()) return;
       const reading = readExpression(buf, faceOk);
       if (reading) handlers.onReading(reading);
     });
-    sdk.on('error', async (code, message, retryable) => {
+    me.on('error', async (code, message, retryable) => {
+      console.warn('SmartSpectra error', code, message, retryable);
+      if (!current()) return;
+      // Internet or server hiccup: shut this session down cleanly and try again.
+      if (RETRY_CODES.has(code) && wanted) {
+        await shutdown();
+        if (scheduleRetry(code)) return;
+      }
       handlers.onError(ERROR_TEXT[code] ?? `SDK error: ${message}`, code === SmartSpectraErrorCode.kInputUnavailable ? 'camera' : 'sdk');
-      // A failed key, no internet or a lost camera cannot recover by itself:
+      // A failed key or a lost camera cannot recover by itself:
       // switch the camera off so it is not left running in the background.
       if (!retryable || code in ERROR_TEXT) {
         await stop();
@@ -108,9 +151,16 @@ export function createCamera(handlers) {
     });
 
     try {
-      await sdk.start();
+      await me.start();
+      retries = 0;
       return true;
     } catch (err) {
+      console.warn('SmartSpectra start failed', err);
+      if (!current()) return false;
+      if (RETRY_CODES.has(err.code)) {
+        await shutdown();
+        if (scheduleRetry(err.code)) return false;
+      }
       const text = ERROR_TEXT[err.code] ?? (err.name === 'NotAllowedError'
         ? 'Camera unavailable: permission was denied.'
         : `Camera unavailable: ${err.message}`);
@@ -122,16 +172,29 @@ export function createCamera(handlers) {
     }
   }
 
-  async function stop() {
-    if (!sdk) return;
+  // Ends the current SDK session without changing what the cook asked for.
+  async function shutdown() {
+    if (!sdk) return stopping;
     const current = sdk;
     sdk = null;
-    try { await current.stop(); } catch { /* already stopped */ }
-    try { current.destroy(); } catch { /* already destroyed */ }
     faceOk = false;
+    stopping = (async () => {
+      try { await current.stop(); } catch { /* already stopped */ }
+      try { current.destroy(); } catch { /* already destroyed */ }
+    })();
+    await stopping;
     handlers.onPreview(null);
-    handlers.onStatus('stopped');
+    return stopping;
   }
 
-  return { start, stop, isRunning: () => sdk !== null };
+  async function stop() {
+    const had = sdk !== null || retryPending;
+    wanted = false;
+    retryPending = false;
+    clearTimeout(retryTimer);
+    await shutdown();
+    if (had) handlers.onStatus('stopped');
+  }
+
+  return { start, stop, isRunning: () => sdk !== null || retryPending };
 }
