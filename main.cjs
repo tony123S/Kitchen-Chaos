@@ -52,6 +52,8 @@ function createWindow() {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // Lets the background music start as soon as the page loads.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 

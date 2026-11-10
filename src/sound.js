@@ -1,11 +1,10 @@
 // Short sound effects made with the Web Audio API (no audio files, so no
-// licensing questions). Background music and the volume controls are
-// added in Phase 4.
+// licensing questions). The same audio context is shared with music.js.
 
 let ctx = null;
 let effectsOn = true;
 
-function audio() {
+export function audio() {
   if (!ctx) ctx = new AudioContext();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;

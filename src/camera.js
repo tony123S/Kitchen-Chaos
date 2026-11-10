@@ -72,6 +72,11 @@ export function createCamera(handlers) {
       handlers.onStatus('error');
       return false;
     }
+    if (typeof MediaStreamTrackProcessor === 'undefined' || !navigator.mediaDevices) {
+      handlers.onError('Camera unavailable: this window cannot read camera frames. Please run Kitchen Chaos with `npm start` (Electron).', 'camera');
+      handlers.onStatus('error');
+      return false;
+    }
     handlers.onStatus('starting');
     sdk = new SmartSpectraSDK({
       apiKey,

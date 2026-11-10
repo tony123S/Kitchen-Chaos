@@ -7,10 +7,15 @@ import { createExpressionService } from './expressions.js';
 import { createSetupScreen } from './setup-screen.js';
 import { createCookingScreen } from './cooking-screen.js';
 import { sfx } from './sound.js';
+import { music } from './music.js';
+import { loadSettings, saveSettings } from './settings.js';
 import { $ } from './ui-bits.js';
 
 const state = { screen: 'welcome', recipe: null };
-const expressions = createExpressionService(() => window.kitchenChaos.getConfig());
+// The settings bridge only exists inside the Electron app (see preload.cjs).
+const getConfig = async () => (window.kitchenChaos ? window.kitchenChaos.getConfig() : { apiKey: '', telemetry: false });
+const expressions = createExpressionService(getConfig);
+const settings = loadSettings();
 
 const setup = createSetupScreen({
   expressions,
@@ -33,6 +38,7 @@ async function show(screen) {
   for (const el of document.querySelectorAll('[data-screen]')) el.hidden = el.dataset.screen !== screen;
   $('appbar').hidden = screen === 'welcome' || screen === 'cooking';
   window.scrollTo(0, 0);
+  music.setDucked(screen === 'cooking');
   if (screen === 'setup') setup.enter(state.recipe);
   if (screen === 'cooking') cooking.enter(state.recipe);
 }
@@ -56,7 +62,53 @@ function showDone(recipe) {
   show('done');
 }
 
+function initSound() {
+  sfx.setEnabled(settings.sfxOn);
+  music.setVolume(settings.musicVolume);
+  $('opt-music').checked = settings.musicOn;
+  $('opt-volume').value = String(Math.round(settings.musicVolume * 100));
+  $('opt-sfx').checked = settings.sfxOn;
+  const icon = () => { $('btn-sound').textContent = settings.musicOn || settings.sfxOn ? '🎵' : '🔇'; };
+  icon();
+
+  $('btn-sound').addEventListener('click', () => {
+    const open = $('sound-pop').hidden;
+    $('sound-pop').hidden = !open;
+    $('btn-sound').setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#sound-panel')) { $('sound-pop').hidden = true; $('btn-sound').setAttribute('aria-expanded', 'false'); }
+  });
+  $('opt-music').addEventListener('change', (e) => {
+    settings.musicOn = e.target.checked;
+    if (settings.musicOn) music.start(); else music.stop();
+    saveSettings(settings); icon();
+  });
+  $('opt-volume').addEventListener('input', (e) => {
+    settings.musicVolume = Number(e.target.value) / 100;
+    music.setVolume(settings.musicVolume);
+    saveSettings(settings);
+  });
+  $('opt-sfx').addEventListener('change', (e) => {
+    settings.sfxOn = e.target.checked;
+    sfx.setEnabled(settings.sfxOn);
+    if (settings.sfxOn) sfx.step();
+    saveSettings(settings); icon();
+  });
+
+  // Browsers only allow sound after the first click or key press.
+  const firstGesture = () => {
+    if (settings.musicOn) music.start();
+    window.removeEventListener('pointerdown', firstGesture);
+    window.removeEventListener('keydown', firstGesture);
+  };
+  window.addEventListener('pointerdown', firstGesture);
+  window.addEventListener('keydown', firstGesture);
+  if (settings.musicOn) music.start(); // works straight away in the Electron app
+}
+
 function init() {
+  initSound();
   $('welcome-chef').innerHTML = chefSvg('happy');
   for (const el of document.querySelectorAll('[data-art]')) el.innerHTML = HOWTO_ART[el.dataset.art] ?? '';
   $('recipe-grid').innerHTML = RECIPES.map(recipeCardHtml).join('');

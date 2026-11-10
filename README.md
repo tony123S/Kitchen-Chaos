@@ -12,6 +12,12 @@ Built for the Presage SmartSpectra Challenge (#presagechallenge).
 > Recipe Details, camera setup with a short expression test, cooking mode with live
 > expression controls, a pause/resume timer, and the finished screen. Music, volume
 > controls and extra polish come in Phase 4.
+>
+> **Phase 4 added:** background music and sound effects made in code (no audio files, so no
+> licensing questions), the 🎵 button for music on/off, music volume and effects on/off
+> (remembered on this computer), quieter music during cooking, chef idle/reaction
+> animations, a better small-window layout, and a clear message when the camera cannot be
+> used in the current window.
 
 ## Requirements
 
@@ -93,6 +99,8 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
 | `src/timer.js` | Countdown with pause and resume; never changes the step by itself |
 | `src/cooking-screen.js` | Cooking mode and timer (screens 6 and 7) |
 | `src/sound.js` | Short sound effects made with Web Audio (no audio files) |
+| `src/music.js` | Background music composed in code with Web Audio |
+| `src/settings.js` | Remembers music and sound settings (local storage only) |
 | `src/app.js` | Screen switching; wires everything together |
 | `build.mjs` | Bundles the window code and preload with esbuild |
 
@@ -107,5 +115,6 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
   (SDK version, platform, frame counts, error codes) and never video frames, metric values or
   user identifiers. See [SDK Telemetry & Privacy](https://smartspectra.presagetech.com/docs/telemetry-and-privacy).
 - Your API key stays in your local `.env` file, which is never committed.
+- The only thing Kitchen Chaos saves is your music and sound settings, in the app's local storage on this computer.
 
 Kitchen Chaos is not a medical device and makes no health or emotion claims. Expressions are used only as buttons.

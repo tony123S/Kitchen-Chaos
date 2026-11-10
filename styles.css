@@ -295,3 +295,36 @@ body {
 .done-pics .food-pic { max-width: 420px; margin: 0 auto; }
 .done-chef { width: 130px; position: absolute; right: 0; bottom: -20px; }
 .done h1 { font-size: 40px; margin: 28px 0 4px; }
+
+/* ---------- Sound panel (Phase 4) ---------- */
+.sound-panel { position: fixed; top: 10px; right: 14px; z-index: 50; }
+.sound-btn {
+  width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--orange);
+  background: #fff; font-size: 22px; cursor: pointer; box-shadow: 0 4px 12px rgba(120, 70, 20, 0.12);
+}
+.sound-btn:focus-visible { outline: 3px solid var(--yellow); }
+.sound-pop { position: absolute; right: 0; top: 54px; width: 260px; display: grid; gap: 10px; padding: 16px; }
+.sound-pop .row { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.sound-pop .vol { flex-direction: column; align-items: stretch; gap: 4px; }
+.sound-pop input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--orange); }
+.sound-pop input[type="range"] { accent-color: var(--orange); }
+.appbar { padding-right: 76px; }
+.cook-head { padding-right: 60px; }
+
+/* Gentle idle "breathing" so Chef Pip feels alive without distracting. */
+.cook-chef[data-mood="idle"] { animation: breathe 3.5s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.03) translateY(-2px); } }
+#btn-exit { white-space: nowrap; }
+@media (max-width: 700px) {
+  .controls-bar { gap: 8px; padding: 8px 10px; }
+  .expr-controls { width: 100%; gap: 6px; flex-wrap: nowrap; }
+  .expr { padding: 4px 8px; grid-template-columns: auto 1fr; }
+  .expr .emoji { font-size: 24px; grid-row: auto; }
+  .expr b { display: none; }
+  .expr > span:nth-of-type(2) { font-size: 14px; font-weight: 700; }
+  .manual { width: 100%; }
+  .manual .btn { flex: 1; padding: 10px 8px; font-size: 16px; }
+  .cooking { padding-bottom: 200px; }
+  .cook-head h1 { font-size: 24px; }
+  #btn-exit { padding: 8px 14px; font-size: 15px; }
+}

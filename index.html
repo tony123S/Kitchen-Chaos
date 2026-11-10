@@ -9,6 +9,16 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="sound-panel" id="sound-panel">
+    <button class="sound-btn" id="btn-sound" aria-expanded="false" aria-controls="sound-pop" title="Music and sound">🎵</button>
+    <div class="sound-pop card" id="sound-pop" hidden>
+      <label class="row"><input type="checkbox" id="opt-music"> Background music</label>
+      <label class="row vol">Music volume <input type="range" id="opt-volume" min="0" max="100" step="5"></label>
+      <label class="row"><input type="checkbox" id="opt-sfx"> Sound effects</label>
+      <p class="small">Music gets quieter while you cook.</p>
+    </div>
+  </div>
+
   <header class="appbar" id="appbar" hidden>
     <button class="brand" data-go="welcome" aria-label="Kitchen Chaos home">🍳 Kitchen Chaos</button>
     <nav>
