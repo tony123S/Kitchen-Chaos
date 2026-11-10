@@ -60,7 +60,7 @@ const ERROR_TEXT = {
  * @param {(reading: object) => void} handlers.onReading
  * @param {(stream: MediaStream|null) => void} handlers.onPreview
  * @param {(hint: string, faceOk: boolean) => void} handlers.onHint
- * @param {(message: string) => void} handlers.onError
+ * @param {(message: string, kind: 'camera'|'sdk') => void} handlers.onError
  */
 export function createCamera(handlers) {
   let sdk = null;
@@ -68,7 +68,7 @@ export function createCamera(handlers) {
 
   async function start({ apiKey, telemetry = false }) {
     if (!apiKey) {
-      handlers.onError('SDK connection error: no API key. Add SMARTSPECTRA_API_KEY to your .env file.');
+      handlers.onError('SDK connection error: no API key. Add SMARTSPECTRA_API_KEY to your .env file.', 'sdk');
       handlers.onStatus('error');
       return false;
     }
@@ -93,7 +93,7 @@ export function createCamera(handlers) {
       if (reading) handlers.onReading(reading);
     });
     sdk.on('error', async (code, message, retryable) => {
-      handlers.onError(ERROR_TEXT[code] ?? `SDK error: ${message}`);
+      handlers.onError(ERROR_TEXT[code] ?? `SDK error: ${message}`, code === SmartSpectraErrorCode.kInputUnavailable ? 'camera' : 'sdk');
       // A failed key, no internet or a lost camera cannot recover by itself:
       // switch the camera off so it is not left running in the background.
       if (!retryable || code in ERROR_TEXT) {
@@ -109,7 +109,8 @@ export function createCamera(handlers) {
       const text = ERROR_TEXT[err.code] ?? (err.name === 'NotAllowedError'
         ? 'Camera unavailable: permission was denied.'
         : `Camera unavailable: ${err.message}`);
-      handlers.onError(text);
+      const kind = ERROR_TEXT[err.code] && err.code !== SmartSpectraErrorCode.kInputUnavailable ? 'sdk' : 'camera';
+      handlers.onError(text, kind);
       await stop();
       handlers.onStatus('error');
       return false;

@@ -2,35 +2,64 @@
 
 import { RECIPES, getRecipe } from './recipes.js';
 import { recipeCardHtml, recipeDetailsHtml } from './views.js';
-import { chefSvg, HOWTO_ART } from './art.js';
-import { initSdkCheck } from './sdk-check.js';
+import { chefSvg, foodSvg, HOWTO_ART } from './art.js';
+import { createExpressionService } from './expressions.js';
+import { createSetupScreen } from './setup-screen.js';
+import { createCookingScreen } from './cooking-screen.js';
+import { sfx } from './sound.js';
+import { $ } from './ui-bits.js';
 
-const $ = (id) => document.getElementById(id);
-const state = { screen: 'welcome', recipeId: null };
-let camera = null;
+const state = { screen: 'welcome', recipe: null };
+const expressions = createExpressionService(() => window.kitchenChaos.getConfig());
 
-export async function show(screen) {
-  // Leaving the camera screen always switches the camera off.
-  if (state.screen === 'camera' && screen !== 'camera' && camera) await camera.stop();
+const setup = createSetupScreen({
+  expressions,
+  onBegin: () => show('cooking'),
+});
+const cooking = createCookingScreen({
+  expressions,
+  onFinish: (recipe) => showDone(recipe),
+  onExit: () => show('details'),
+});
+const screens = { setup, cooking };
+
+async function show(screen) {
+  const from = state.screen;
+  if (from === screen) return;
+  screens[from]?.leave();
+  // The camera only runs on the setup and cooking screens.
+  if (!['setup', 'cooking'].includes(screen) && expressions.isRunning()) await expressions.stop();
   state.screen = screen;
   for (const el of document.querySelectorAll('[data-screen]')) el.hidden = el.dataset.screen !== screen;
-  $('appbar').hidden = screen === 'welcome';
+  $('appbar').hidden = screen === 'welcome' || screen === 'cooking';
   window.scrollTo(0, 0);
+  if (screen === 'setup') setup.enter(state.recipe);
+  if (screen === 'cooking') cooking.enter(state.recipe);
 }
 
 function openRecipe(id) {
   const recipe = getRecipe(id);
   if (!recipe) return;
-  state.recipeId = id;
+  state.recipe = recipe;
   $('details').innerHTML = recipeDetailsHtml(recipe);
   show('details');
+}
+
+function showDone(recipe) {
+  $('done-food').innerHTML = foodSvg(recipe.image);
+  $('done-chef').innerHTML = chefSvg('victory');
+  $('done-title').textContent = `${recipe.name}: done!`;
+  $('done-text').textContent = recipe.id === 'pancakes'
+    ? 'Golden, fluffy and hands-free. Grab a fork and enjoy your pancakes!'
+    : 'A big bowl of spaghetti bolognese, cooked without touching the screen. Buon appetito!';
+  sfx.victory();
+  show('done');
 }
 
 function init() {
   $('welcome-chef').innerHTML = chefSvg('happy');
   for (const el of document.querySelectorAll('[data-art]')) el.innerHTML = HOWTO_ART[el.dataset.art] ?? '';
   $('recipe-grid').innerHTML = RECIPES.map(recipeCardHtml).join('');
-  camera = initSdkCheck();
 
   document.addEventListener('click', (event) => {
     const go = event.target.closest('[data-go]');
@@ -39,14 +68,13 @@ function init() {
     if (recipe) return openRecipe(recipe.dataset.recipe);
     const start = event.target.closest('[data-start]');
     if (start) {
-      const r = getRecipe(start.dataset.start);
-      $('camera-recipe-note').textContent =
-        `Next up: ${r.name}. First, confirm SmartSpectra can see your expressions. Cooking mode arrives in the next update.`;
-      return show('camera');
+      state.recipe = getRecipe(start.dataset.start);
+      return show('setup');
     }
     return undefined;
   });
-  window.addEventListener('beforeunload', () => camera && camera.stop());
+  $('btn-again').addEventListener('click', () => show('setup'));
+  window.addEventListener('beforeunload', () => expressions.stop());
 }
 
 init();

@@ -102,46 +102,145 @@
     </div>
   </section>
 
-  <!-- Screen 5 (Phase 3 will turn this into camera setup): SDK check -->
-  <section class="screen" id="screen-camera" data-screen="camera" hidden>
-    <h1>Camera check <span class="tag">Phase 1 SDK check</span></h1>
-    <p class="lead" id="camera-recipe-note">Confirm SmartSpectra can see your expressions. Cooking mode arrives in the next update.</p>
-    <div class="check">
-      <section class="card camera-card">
-        <div class="preview-wrap">
-          <video id="preview" autoplay muted playsinline hidden></video>
-          <div id="preview-empty" class="preview-empty">
-            The camera is off. It only turns on when you press Start camera.
+  <!-- Screen 5: Camera permission and expression setup -->
+  <section class="screen" id="screen-setup" data-screen="setup" hidden>
+    <button class="link back" data-go="details">← Back to recipe</button>
+    <h1>Camera setup</h1>
+    <p class="lead" id="setup-recipe">Let's make sure SmartSpectra can see your expressions.</p>
+
+    <div class="setup-grid">
+      <section class="card">
+        <div id="consent" class="consent">
+          <h2>📷 Why we need your camera</h2>
+          <p>Kitchen Chaos uses the Presage SmartSpectra SDK to read your facial expressions live, so you can move through the recipe without touching the screen.</p>
+          <ul>
+            <li>The camera turns on only when you press the button below.</li>
+            <li>Video is not recorded, saved or uploaded by Kitchen Chaos.</li>
+            <li>You can switch it off any time with <b>Stop camera</b>.</li>
+          </ul>
+          <p class="small">Your computer may ask for camera permission. More details in <button class="link inline" data-go="privacy">Privacy</button>.</p>
+          <div class="buttons">
+            <button class="btn primary big" id="btn-allow">Allow camera and start</button>
+          </div>
+          <button class="link" id="btn-skip-camera">Cook without the camera (buttons only)</button>
+        </div>
+
+        <div id="setup-live" hidden>
+          <div class="preview-wrap">
+            <video id="setup-preview" class="preview" autoplay muted playsinline hidden></video>
+            <div class="preview-empty" id="setup-preview-empty">Starting camera...</div>
+          </div>
+          <p class="status" id="setup-status" data-state="idle">Camera off</p>
+          <p class="hint" id="setup-hint"></p>
+          <p class="error" id="setup-error" hidden></p>
+          <div class="buttons">
+            <button class="btn" id="btn-setup-retry" hidden>Try again</button>
+            <button class="btn" id="btn-setup-stop">Stop camera</button>
           </div>
         </div>
-        <p id="status" class="status" data-state="idle">Camera off</p>
-        <p id="hint" class="hint">Look at the camera and keep your face inside the frame.</p>
-        <p id="error" class="error" hidden></p>
-        <div class="buttons">
-          <button id="btn-start" class="btn primary">Start camera</button>
-          <button id="btn-stop" class="btn" disabled>Stop camera</button>
-        </div>
-        <p class="small">Video stays on this computer. Kitchen Chaos does not record or save it.
-          SDK telemetry is <strong id="telemetry">off</strong>.</p>
       </section>
 
       <section class="card">
-        <h2>Live expression scores</h2>
-        <p class="small">Straight from the SmartSpectra SDK (confidence 0 to 100).
-          Packets received: <strong id="packets">0</strong> · SDK says stable: <strong id="stable">-</strong></p>
-        <div id="bars" class="bars"></div>
-
-        <h2>What the controls would do</h2>
-        <div class="guide">
-          <span>😊 HAPPY: next step</span>
-          <span>😲 SURPRISE: repeat step</span>
-          <span>😐 NEUTRAL: stay</span>
+        <h2>Quick expression test</h2>
+        <ol class="checklist" id="test-list">
+          <li data-check="camera">Allow the camera</li>
+          <li data-check="face">Look at the camera and keep your face inside the frame</li>
+          <li data-check="smile">Try smiling 😊 and hold it for a second</li>
+          <li data-check="surprise" class="optional">Optional: look surprised 😲 (raise your eyebrows, open your mouth)</li>
+        </ol>
+        <p class="small">Wait until your expression is detected. Each one turns green when SmartSpectra sees it.</p>
+        <div class="mini-bars" id="setup-bars"></div>
+        <div class="hold"><span id="setup-hold"></span></div>
+        <p class="banner" id="setup-banner" hidden></p>
+        <div class="buttons">
+          <button class="btn primary big" id="btn-begin" disabled>Start cooking</button>
         </div>
-        <p>Current: <strong id="candidate">none (staying on this step)</strong></p>
-        <div class="hold"><span id="hold"></span></div>
-        <p id="banner" class="banner" hidden></p>
-        <ol id="log" class="log" reversed></ol>
+        <button class="link" id="btn-begin-anyway">Skip the test</button>
       </section>
+    </div>
+  </section>
+
+  <!-- Screen 6: Cooking mode -->
+  <section class="screen cooking" id="screen-cooking" data-screen="cooking" hidden>
+    <div class="cook-head">
+      <div>
+        <p class="eyebrow" id="cook-recipe">Recipe</p>
+        <h1 id="cook-stepno">Step 1 of 5</h1>
+      </div>
+      <button class="btn" id="btn-exit">Exit cooking</button>
+    </div>
+    <ol class="progress" id="cook-progress" aria-label="Recipe progress"></ol>
+
+    <div class="cook-grid">
+      <article class="card step-card" id="step-card">
+        <div class="step-top">
+          <div class="step-pic" id="step-pic"></div>
+          <h2 id="step-title">Step title</h2>
+        </div>
+        <p class="instruction" id="step-instruction"></p>
+        <div id="step-amounts" class="amounts"></div>
+        <p class="tip" id="step-tip" hidden></p>
+        <p class="step-safety" id="step-safety" hidden></p>
+
+        <div class="timer" id="timer" hidden>
+          <div class="timer-label" id="timer-label"></div>
+          <div class="timer-time" id="timer-time">0:00</div>
+          <div class="buttons center">
+            <button class="btn primary" id="btn-timer-start">Start timer</button>
+            <button class="btn" id="btn-timer-pause" hidden>Pause</button>
+            <button class="btn" id="btn-timer-reset" hidden>Reset</button>
+          </div>
+        </div>
+        <p class="banner timer-done" id="timer-done" hidden>⏰ Time's up! Read the step, then smile or press Next when you are ready.</p>
+        <p class="timer-chip" id="timer-chip" hidden></p>
+      </article>
+
+      <aside class="cook-side">
+        <div class="card chef-card">
+          <div id="cook-chef" class="cook-chef"></div>
+          <p class="chef-says" id="chef-says">Let's cook!</p>
+        </div>
+        <div class="card cam-card">
+          <div class="preview-wrap small-preview">
+            <video id="cook-preview" class="preview" autoplay muted playsinline hidden></video>
+            <div class="preview-empty" id="cook-preview-empty">Camera off. Use the buttons below.</div>
+          </div>
+          <p class="status" id="cook-status" data-state="idle">Camera off</p>
+          <p class="hint" id="cook-hint"></p>
+          <div class="buttons">
+            <button class="btn small" id="btn-cam-toggle">Stop camera</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="controls-bar">
+      <div class="expr-controls" aria-label="Expression controls">
+        <div class="expr" data-expr="HAPPY"><span class="emoji">😊</span><b>HAPPY</b><span>Next step</span><span class="meter"><span></span></span></div>
+        <div class="expr" data-expr="SURPRISE"><span class="emoji">😲</span><b>SURPRISE</b><span>Repeat step</span><span class="meter"><span></span></span></div>
+        <div class="expr" data-expr="NEUTRAL"><span class="emoji">😐</span><b>NEUTRAL</b><span>Stay here</span><span class="meter"><span></span></span></div>
+      </div>
+      <div class="manual">
+        <button class="btn" id="btn-back" title="Left arrow">◀ Back</button>
+        <button class="btn" id="btn-repeat" title="R key">↻ Repeat</button>
+        <button class="btn primary" id="btn-next" title="Right arrow or Space">Next ▶</button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- Screen 8: Cooking completed -->
+  <section class="screen done" id="screen-done" data-screen="done" hidden>
+    <div class="done-inner">
+      <div class="done-pics">
+        <div class="food-pic big" id="done-food"></div>
+        <div class="done-chef" id="done-chef"></div>
+      </div>
+      <h1 id="done-title">You did it!</h1>
+      <p class="lead" id="done-text">Your dish is ready. Enjoy!</p>
+      <div class="buttons center">
+        <button class="btn primary big" id="btn-again">Cook Again</button>
+        <button class="btn big" data-go="recipes">Back to Recipes</button>
+      </div>
     </div>
   </section>
 

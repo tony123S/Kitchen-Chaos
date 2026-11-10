@@ -186,3 +186,112 @@ body {
 .prose h2:first-child { margin-top: 0; }
 .prose p { margin: 0; }
 .prose a { color: var(--orange-dark); }
+
+/* ---------- Setup (screen 5) ---------- */
+.setup-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .setup-grid { grid-template-columns: 1fr; } }
+.preview { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.consent ul { padding-left: 20px; }
+.link.inline { padding: 0; }
+.checklist { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 8px; }
+.checklist li { padding: 10px 12px 10px 42px; border-radius: 12px; background: #fbf3e8; position: relative; }
+.checklist li::before {
+  content: ""; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; border-radius: 50%; border: 3px solid #d9c4ab; background: #fff;
+}
+.checklist li.ok { background: #e3f4e8; color: #1f5c35; font-weight: 600; }
+.checklist li.ok::before { border-color: var(--green); background: var(--green); content: "✓"; color: #fff; font-size: 13px; display: grid; place-items: center; line-height: 1; }
+.checklist li.optional { opacity: 0.85; }
+.mini-bars { display: grid; gap: 6px; margin: 10px 0; }
+.btn.small { padding: 6px 14px; font-size: 15px; }
+.status[data-state="starting"] { color: var(--muted); }
+
+/* ---------- Cooking mode (screens 6 and 7) ---------- */
+.cooking { max-width: 1240px; padding-bottom: 170px; }
+.cook-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.cook-head h1 { margin: 0; font-size: 30px; }
+.eyebrow { margin: 0; color: var(--orange-dark); font-weight: 700; }
+.progress { list-style: none; display: flex; gap: 6px; padding: 0; margin: 12px 0 16px; }
+.progress li { flex: 1; height: 12px; border-radius: 999px; background: #f0e0cb; position: relative; }
+.progress li span { position: absolute; inset: 0; font-size: 0; }
+.progress li.done { background: var(--green); }
+.progress li.current { background: var(--orange); }
+.cook-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .cook-grid { grid-template-columns: 1fr; } }
+
+.step-card.enter { animation: step-in 0.35s ease-out; }
+.step-card.again { animation: step-again 0.6s ease-out; }
+@keyframes step-in { from { opacity: 0; transform: translateX(24px); } }
+@keyframes step-again { 0% { box-shadow: 0 0 0 0 rgba(143, 106, 214, 0.6); } 100% { box-shadow: 0 0 0 18px rgba(143, 106, 214, 0); } }
+.step-top { display: flex; align-items: center; gap: 14px; }
+.step-pic { width: 120px; flex: none; border-radius: 12px; overflow: hidden; line-height: 0; }
+.step-pic svg { width: 100%; height: auto; }
+.step-top h2 { font-size: 24px; margin: 0; }
+.instruction { font-size: 24px; line-height: 1.45; font-weight: 600; margin: 16px 0; }
+@media (max-width: 600px) { .instruction { font-size: 21px; } }
+.amounts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.amounts-label { font-weight: 700; color: var(--muted); }
+.chip { background: #fff1dc; border: 2px solid #ffd9a0; border-radius: 999px; padding: 4px 12px; font-weight: 700; }
+.tip { background: #f3f7ff; border-radius: 12px; padding: 10px 14px; margin: 14px 0 0; }
+.step-safety { background: #fff6e0; border: 2px solid #ffd98a; border-radius: 12px; padding: 10px 14px; margin: 10px 0 0; font-weight: 600; }
+
+.timer { margin-top: 16px; background: #2f2117; color: #fff8ec; border-radius: 16px; padding: 16px; text-align: center; }
+.timer-label { font-weight: 600; }
+.timer-time { font-size: 72px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.timer.finished { background: var(--green); animation: ring 0.5s ease-in-out 3; }
+@keyframes ring { 25% { transform: rotate(-1.5deg); } 75% { transform: rotate(1.5deg); } }
+.timer .btn { background: transparent; color: #fff; border-color: #fff; }
+.timer .btn.primary { background: var(--orange); border-color: var(--orange); }
+.timer-done { margin-top: 12px; }
+.timer-chip { margin: 12px 0 0; background: #2f2117; color: #fff; border-radius: 999px; padding: 6px 14px; display: inline-block; font-weight: 600; }
+
+.cook-side { display: grid; gap: 16px; }
+.chef-card { text-align: center; }
+.cook-chef { width: 150px; margin: 0 auto; }
+.cook-chef[data-mood="happy"] { animation: hop 0.5s ease-out 2; }
+.cook-chef[data-mood="surprised"] { animation: shake 0.4s ease-in-out 2; }
+.cook-chef[data-mood="confused"] { animation: tilt 1.2s ease-in-out; }
+.done-chef { animation: hop 0.6s ease-out infinite; }
+@keyframes hop { 50% { transform: translateY(-14px); } }
+@keyframes shake { 25% { transform: translateX(-6px) rotate(-4deg); } 75% { transform: translateX(6px) rotate(4deg); } }
+@keyframes tilt { 50% { transform: rotate(-10deg); } }
+@media (prefers-reduced-motion: reduce) { .cook-chef, .done-chef, .step-card, .timer { animation: none !important; } }
+.chef-says { font-weight: 700; margin: 6px 0 0; min-height: 3em; }
+.small-preview { aspect-ratio: 4 / 3; }
+.cam-card .status { font-size: 17px; margin-top: 10px; }
+.cam-card .hint { font-size: 15px; }
+
+.controls-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; justify-content: center; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 12px 20px; background: #fffdf8; border-top: 3px solid #f3e2c9;
+  box-shadow: 0 -6px 20px rgba(120, 70, 20, 0.08);
+}
+.expr-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.expr {
+  display: grid; grid-template-columns: auto auto; column-gap: 8px; align-items: center;
+  background: #fff1dc; border: 3px solid transparent; border-radius: 14px; padding: 6px 12px; min-width: 170px;
+}
+.expr .emoji { font-size: 32px; grid-row: span 2; }
+.expr b { font-size: 15px; }
+.expr .meter { grid-column: 1 / -1; height: 6px; background: #f0dcc2; border-radius: 999px; overflow: hidden; margin-top: 4px; }
+.expr .meter span { display: block; height: 100%; width: 0; background: var(--orange); transition: width 0.15s; }
+.expr[data-expr="SURPRISE"] .meter span { background: #8f6ad6; }
+.expr[data-expr="NEUTRAL"] .meter span { background: #7fa8c9; }
+.expr.holding { border-color: var(--yellow); }
+.expr.fired { border-color: var(--green); background: #e3f4e8; }
+.expr-controls.off .expr { opacity: 0.55; }
+.manual { display: flex; gap: 8px; }
+.manual .btn { font-size: 18px; padding: 12px 20px; }
+@media (max-width: 700px) {
+  .cooking { padding-bottom: 260px; }
+  .expr { min-width: 0; flex: 1; }
+}
+
+/* ---------- Done (screen 8) ---------- */
+.done { min-height: 100vh; display: grid; place-items: center; text-align: center; }
+.done-inner { max-width: 640px; }
+.done-pics { position: relative; }
+.done-pics .food-pic { max-width: 420px; margin: 0 auto; }
+.done-chef { width: 130px; position: absolute; right: 0; bottom: -20px; }
+.done h1 { font-size: 40px; margin: 28px 0 4px; }
