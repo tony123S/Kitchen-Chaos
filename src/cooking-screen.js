@@ -6,7 +6,7 @@ import { $, statusText, showPreview, setBar } from './ui-bits.js';
 import { createCookingSession } from './cooking.js';
 import { createTimer, formatTime } from './timer.js';
 import { chefSvg, foodSvg } from './art.js';
-import { sfx } from './sound.js';
+import { sfx, music } from './sound.js';
 
 const CHEF_LINES = {
   next: ['Yum, next step!', 'Great job, chef!', 'Onwards!', 'You are a natural!'],
@@ -112,6 +112,22 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
     renderTimer();
   }
 
+  function syncMusicControls() {
+    const button = $('btn-music-toggle');
+    button.textContent = music.enabled ? '♫ Music: On' : '♫ Music: Off';
+    button.setAttribute('aria-pressed', String(music.enabled));
+    $('music-volume').value = String(Math.round(music.volume * 100));
+  }
+
+  $('btn-music-toggle').addEventListener('click', () => {
+    music.toggle();
+    syncMusicControls();
+  });
+  $('music-volume').addEventListener('input', (event) => {
+    music.setVolume(Number(event.target.value) / 100);
+  });
+  syncMusicControls();
+
   $('btn-timer-start').addEventListener('click', startTimer);
   $('btn-timer-pause').addEventListener('click', () => { activeTimer?.timer.pause(); renderTimer(); });
   $('btn-timer-reset').addEventListener('click', () => { activeTimer?.timer.reset(); renderTimer(); });
@@ -136,6 +152,8 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
   async function finish() {
     if (activeTimer) activeTimer.timer.dispose();
     activeTimer = null;
+    music.stop();
+    syncMusicControls();
     await expressions.stop();
     onFinish(session.recipe);
   }
@@ -146,6 +164,8 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
   $('btn-exit').addEventListener('click', async () => {
     if (activeTimer) activeTimer.timer.dispose();
     activeTimer = null;
+    music.stop();
+    syncMusicControls();
     await expressions.stop();
     onExit(session.recipe);
   });
