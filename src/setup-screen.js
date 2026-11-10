@@ -2,11 +2,15 @@
 
 import { $, statusText, showPreview, setBar } from './ui-bits.js';
 
-const TEST_EXPRESSIONS = ['HAPPY', 'SURPRISE', 'NEUTRAL'];
+const TEST_EXPRESSIONS = ['HAPPY', 'SAD', 'NEUTRAL'];
+const BACK_TEXT = {
+  sad: 'Optional: make a sad pout 🙁 (turn the corners of your mouth down) to go back',
+  eyes: 'Optional: close your eyes for about 1 second 😌 to go back',
+};
 
-export function createSetupScreen({ expressions, onBegin }) {
+export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
   let unsubscribe = null;
-  let passed = { camera: false, face: false, smile: false, surprise: false };
+  let passed = { camera: false, face: false, smile: false, back: false };
   let bannerTimer = null;
 
   $('setup-bars').innerHTML = TEST_EXPRESSIONS.map((n) => `
@@ -47,6 +51,21 @@ export function createSetupScreen({ expressions, onBegin }) {
     await expressions.start();
   }
 
+  function showBackChoice() {
+    const mode = expressions.backGesture;
+    for (const r of document.querySelectorAll('input[name="back-gesture"]')) r.checked = r.value === mode;
+    $('test-back').textContent = BACK_TEXT[mode];
+  }
+  for (const r of document.querySelectorAll('input[name="back-gesture"]')) {
+    r.addEventListener('change', () => {
+      expressions.setBackGesture(r.value);
+      onBackGesture?.(r.value);
+      passed.back = false;
+      $('test-back').classList.remove('ok');
+      showBackChoice();
+    });
+  }
+
   $('btn-allow').addEventListener('click', startCamera);
   $('btn-setup-retry').addEventListener('click', startCamera);
   $('btn-setup-stop').addEventListener('click', () => expressions.stop());
@@ -57,6 +76,7 @@ export function createSetupScreen({ expressions, onBegin }) {
   return {
     enter(recipe) {
       $('setup-recipe').textContent = `Next up: ${recipe.name}. First, let's make sure SmartSpectra can see your expressions.`;
+      showBackChoice();
       const running = expressions.isRunning();
       $('consent').hidden = running;
       $('setup-live').hidden = !running;
@@ -80,7 +100,13 @@ export function createSetupScreen({ expressions, onBegin }) {
           }
           $('setup-hold').style.width = `${Math.round(result.holdProgress * 100)}%`;
           if (result.action === 'next') { mark('smile'); flash('😊 Happy expression detected! Great smile.'); }
-          if (result.action === 'repeat') { mark('surprise'); flash('😲 Surprise detected! Nice one.'); }
+          $('setup-eyes').textContent = reading.eyesClosed === null ? 'no data' : reading.eyesClosed ? 'yes' : 'no';
+          if (result.action === 'back') {
+            mark('back');
+            flash(expressions.backGesture === 'eyes'
+              ? '😌 Eyes closed detected! That is how you go back.'
+              : '🙁 Sad face detected! That is how you go back.');
+          }
         },
       });
     },

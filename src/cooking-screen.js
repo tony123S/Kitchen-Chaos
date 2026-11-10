@@ -1,5 +1,5 @@
 // Screen 6 and 7: cooking mode and the cooking timer.
-// Expressions and buttons both call the same next / repeat / back functions,
+// Expressions and buttons both call the same next / back / repeat functions,
 // so the face controls and the manual fallback always behave the same way.
 
 import { $, statusText, showPreview, setBar } from './ui-bits.js';
@@ -130,8 +130,14 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
     chef('surprised', source === 'face' ? 'Surprise detected! Here is this step again.' : pick(CHEF_LINES.repeat));
     renderStep({ again: true });
   }
-  function back() {
-    if (session.back() === 'moved') { chef('idle', 'Going back one step.'); renderStep(); }
+  function back(source) {
+    if (session.back() === 'moved') {
+      sfx.boing();
+      chef('surprised', source === 'face' ? (expressions.backGesture === 'eyes' ? 'Eyes closed detected! Going back one step.' : 'Sad face detected! Going back one step.') : 'Going back one step.');
+      renderStep();
+    } else if (source === 'face') {
+      chef('confused', 'This is already the first step!');
+    }
   }
   async function finish() {
     if (activeTimer) activeTimer.timer.dispose();
@@ -142,7 +148,7 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
 
   $('btn-next').addEventListener('click', () => next('button'));
   $('btn-repeat').addEventListener('click', () => repeat('button'));
-  $('btn-back').addEventListener('click', back);
+  $('btn-back').addEventListener('click', () => back('button'));
   $('btn-exit').addEventListener('click', async () => {
     if (activeTimer) activeTimer.timer.dispose();
     activeTimer = null;
@@ -158,7 +164,7 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
     if (!session || $('screen-cooking').hidden) return;
     if (event.target.closest('input, textarea')) return;
     if (event.key === 'ArrowRight' || event.key === ' ') { event.preventDefault(); next('button'); }
-    else if (event.key === 'ArrowLeft') back();
+    else if (event.key === 'ArrowLeft') back('button');
     else if (event.key.toLowerCase() === 'r') repeat('button');
   });
 
@@ -190,6 +196,9 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
     enter(recipe, { restart = true } = {}) {
       if (restart || !session || session.recipe.id !== recipe.id) session = createCookingSession(recipe);
       expressions.resetControls();
+      const eyesMode = expressions.backGesture === 'eyes';
+      $('back-emoji').textContent = eyesMode ? '😌' : '🙁';
+      $('back-name').textContent = eyesMode ? 'EYES CLOSED 1s' : 'SAD';
       chef('idle', `Let's make ${recipe.name}!`);
       renderStep();
       unsubscribe = expressions.subscribe({
@@ -204,13 +213,19 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
         },
         error: () => renderStatus(expressions.state.status),
         reading: (reading, result) => {
+          const eyesMode = expressions.backGesture === 'eyes';
           for (const el of document.querySelectorAll('.expr')) {
-            const name = el.dataset.expr;
-            setBar(el.querySelector('.meter span'), result.smoothed[name]);
+            let name = el.dataset.expr;
+            let value = result.smoothed[name];
+            if (name === 'BACK') {
+              name = eyesMode ? 'EYES' : 'SAD';
+              value = eyesMode ? result.holdProgress * 100 * (result.candidate === 'EYES') : result.smoothed.SAD;
+            }
+            setBar(el.querySelector('.meter span'), value);
             el.classList.toggle('holding', result.candidate === name && result.holdProgress > 0 && !result.action);
           }
           if (result.action === 'next') { flashDetected('HAPPY'); next('face'); }
-          else if (result.action === 'repeat') { flashDetected('SURPRISE'); repeat('face'); }
+          else if (result.action === 'back') { flashDetected('BACK'); back('face'); }
         },
       });
     },

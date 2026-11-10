@@ -34,7 +34,7 @@
       <div id="welcome-chef" class="welcome-chef"></div>
       <h1 class="logo">Kitchen <span>Chaos</span></h1>
       <p class="tagline">Cook Without Touching Your Screen!</p>
-      <p class="lead">Follow a recipe step by step. Smile to move on, look surprised to see a step again. Your hands stay free for cooking.</p>
+      <p class="lead">Follow a recipe step by step. Smile to move on, make a sad pout to go back. Your hands stay free for cooking.</p>
       <div class="buttons center">
         <button class="btn primary big" data-go="recipes">Start Cooking</button>
         <button class="btn big" data-go="howto">How to Use</button>
@@ -69,7 +69,7 @@
         <p>Use your face instead of your fingers. The guide is always on screen, so there is nothing to remember.</p>
         <ul class="expr-guide">
           <li><span class="emoji">😊</span><b>Smile</b> Next step</li>
-          <li><span class="emoji">😲</span><b>Surprise</b> Repeat this step</li>
+          <li><span class="emoji">🙁</span><b>Sad pout</b> Previous step (or close your eyes for 1 second, your choice)</li>
           <li><span class="emoji">😐</span><b>Neutral</b> Stay on this step</li>
         </ul>
         <p class="small">Hold the expression for about a second. Big buttons and keyboard keys always work too, so you never have to make a face you are not comfortable with.</p>
@@ -98,13 +98,13 @@
     <h1>Privacy and your camera</h1>
     <div class="card prose">
       <h2>Why the camera is needed</h2>
-      <p>Kitchen Chaos uses your camera so the Presage SmartSpectra SDK can read your facial expressions. A smile moves to the next step and a surprised look repeats the step, so you do not have to touch the screen with messy hands.</p>
+      <p>Kitchen Chaos uses your camera so the Presage SmartSpectra SDK can read your facial expressions. A smile moves to the next step and a sad pout goes back one step, so you do not have to touch the screen with messy hands.</p>
       <h2>When the camera is on</h2>
       <p>Only after you agree on the camera screen and press Start. It turns off when you press Stop camera, leave cooking mode, or close the app. Your computer's camera light shows when it is on.</p>
       <h2>How SmartSpectra processes it</h2>
       <p>According to Presage's documentation, all SmartSpectra measurements are computed on your device. The SDK contacts Presage's server to check the API key and subscription.</p>
       <h2>What is stored or shared</h2>
-      <p>Kitchen Chaos does not record, save or upload video, and keeps no history of your expressions. Expression scores are used for a moment to decide "next" or "repeat" and then thrown away. Only your music and sound settings are saved on this computer.</p>
+      <p>Kitchen Chaos does not record, save or upload video, and keeps no history of your expressions. Expression scores are used for a moment to decide "next" or "back" and then thrown away. Only your music and sound settings are saved on this computer.</p>
       <h2>SDK telemetry</h2>
       <p>The SmartSpectra SDK can send Presage one anonymous summary per session (SDK version, platform, frame counts, error codes). It never includes video, measurement values or user identifiers. Kitchen Chaos switches this off by default. <a href="https://smartspectra.presagetech.com/docs/telemetry-and-privacy" target="_blank" rel="noopener">Read Presage's telemetry page</a>.</p>
       <h2>Not a medical device</h2>
@@ -152,14 +152,20 @@
 
       <section class="card">
         <h2>Quick expression test</h2>
+        <fieldset class="back-choice">
+          <legend>How do you want to go back a step?</legend>
+          <label><input type="radio" name="back-gesture" value="sad"> 🙁 Sad pout</label>
+          <label><input type="radio" name="back-gesture" value="eyes"> 😌 Close eyes for 1 second</label>
+        </fieldset>
         <ol class="checklist" id="test-list">
           <li data-check="camera">Allow the camera</li>
           <li data-check="face">Look at the camera and keep your face inside the frame</li>
           <li data-check="smile">Try smiling 😊 and hold it for a second</li>
-          <li data-check="surprise" class="optional">Optional: look surprised 😲 (raise your eyebrows, open your mouth)</li>
+          <li data-check="back" class="optional" id="test-back">Optional: try going back</li>
         </ol>
         <p class="small">Wait until your expression is detected. Each one turns green when SmartSpectra sees it.</p>
         <div class="mini-bars" id="setup-bars"></div>
+        <p class="small">Eyes closed (SDK blink signal): <strong id="setup-eyes">-</strong></p>
         <div class="hold"><span id="setup-hold"></span></div>
         <p class="banner" id="setup-banner" hidden></p>
         <div class="buttons">
@@ -227,7 +233,7 @@
     <footer class="controls-bar">
       <div class="expr-controls" aria-label="Expression controls">
         <div class="expr" data-expr="HAPPY"><span class="emoji">😊</span><b>HAPPY</b><span>Next step</span><span class="meter"><span></span></span></div>
-        <div class="expr" data-expr="SURPRISE"><span class="emoji">😲</span><b>SURPRISE</b><span>Repeat step</span><span class="meter"><span></span></span></div>
+        <div class="expr" data-expr="BACK"><span class="emoji" id="back-emoji">🙁</span><b id="back-name">SAD</b><span>Previous step</span><span class="meter"><span></span></span></div>
         <div class="expr" data-expr="NEUTRAL"><span class="emoji">😐</span><b>NEUTRAL</b><span>Stay here</span><span class="meter"><span></span></span></div>
       </div>
       <div class="manual">

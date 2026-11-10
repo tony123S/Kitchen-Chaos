@@ -12,16 +12,19 @@ export function expressionName(type) {
 
 /**
  * Pulls the newest expression scores out of one metrics packet.
- * @returns {{faceOk: boolean, stable: boolean, scores: Record<string, number>} | null}
+ * @returns {{faceOk: boolean, stable: boolean, scores: Record<string, number>, eyesClosed: boolean|null} | null}
  */
 export function readExpression(buf, faceOk) {
   const metrics = decodeMetrics(buf);
   const list = metrics?.face?.expression;
+  const blinks = metrics?.face?.blinking;
+  // Latest SDK blink status in this packet: true, false, or null if none sent.
+  const eyesClosed = blinks && blinks.length ? Boolean(blinks[blinks.length - 1].detected) : null;
   if (!list || list.length === 0) return null;
   const latest = list[list.length - 1];
   const scores = {};
   for (const score of latest.scores ?? []) {
     scores[expressionName(score.type)] = score.confidence ?? 0;
   }
-  return { faceOk, stable: Boolean(latest.stable), scores };
+  return { faceOk, stable: Boolean(latest.stable), scores, eyesClosed };
 }

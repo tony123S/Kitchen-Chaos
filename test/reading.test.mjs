@@ -18,8 +18,16 @@ test('reads the newest expression scores from a packet', () => {
     { stable: true, scores: [{ type: 5, confidence: 82.5 }, { type: 6, confidence: 10 }, { type: 8, confidence: 3 }] },
   ] } });
   assert.deepEqual(readExpression(buf, true), {
-    faceOk: true, stable: true, scores: { HAPPY: 82.5, NEUTRAL: 10, SURPRISE: 3 },
+    faceOk: true, stable: true, scores: { HAPPY: 82.5, NEUTRAL: 10, SURPRISE: 3 }, eyesClosed: null,
   });
+});
+
+test('reads the newest blink status', () => {
+  const buf = encode({ face: {
+    blinking: [{ detected: false }, { detected: true }],
+    expression: [{ scores: [{ type: 6, confidence: 90 }] }],
+  } });
+  assert.equal(readExpression(buf, true).eyesClosed, true);
 });
 
 test('returns null when a packet has no expression data', () => {

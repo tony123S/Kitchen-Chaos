@@ -3,7 +3,7 @@
 **Cook Without Touching Your Screen!**
 
 Kitchen Chaos lets you follow a recipe without touching your computer. Smile to go to the
-next step, look surprised to see the step again. Expressions are detected live by the
+next step, make a sad pout to go back a step. Expressions are detected live by the
 [Presage SmartSpectra SDK](https://smartspectra.presagetech.com/docs/nodejs).
 
 Built for the Presage SmartSpectra Challenge (#presagechallenge).
@@ -41,8 +41,8 @@ npm start
 ```
 
 Pick a recipe, press **Start Cooking**, then **Allow camera and start**. Smile and hold it for a
-second to tick the test, then cook. In cooking mode: smile for the next step, look surprised
-to repeat a step. The **Back / Repeat / Next** buttons and the keyboard (Left arrow, R,
+second to tick the test, then cook. In cooking mode: smile for the next step, make a sad pout
+to go back a step. The **Back / Repeat / Next** buttons and the keyboard (Left arrow, R,
 Right arrow or Space) always work too.
 
 VS Code terminal on macOS/Linux: if the window never opens, run `env -u ELECTRON_RUN_AS_NODE npm start`.
@@ -65,7 +65,7 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 | Preload | `@smartspectra/node-sdk/preload` (bundled into our own preload) |
 | Window | `SmartSpectraSDK` from `@smartspectra/node-sdk/renderer` |
 | Requested metrics | `faceMetrics` (face landmarks, blinking, talking, expressions) |
-| Live signal used | `metrics.face.expression[].scores`: HAPPY, SURPRISE, NEUTRAL confidence (0 to 100) |
+| Live signals used | `metrics.face.expression[].scores`: HAPPY, SAD, NEUTRAL confidence (0 to 100), and `metrics.face.blinking[].detected` for the eyes-closed option |
 | Camera preview | `streamAvailable` event |
 | Face position help | `validationStatus` event (no face, too far, too close, and so on) |
 | Errors | `error` event (bad key, no internet, camera unavailable) |
@@ -75,11 +75,13 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 | Expression | Action | Rule |
 | --- | --- | --- |
 | 😊 HAPPY | Next step | Smoothed score at least 60, strongest expression, held 0.8 s |
-| 😲 SURPRISE | Repeat step | Smoothed score at least 55, strongest expression, held 0.6 s |
+| 🙁 SAD (a small pout) | Previous step | Smoothed score at least 50, strongest expression, held 0.8 s |
+| 😌 Eyes closed (alternative) | Previous step | SDK blink signal (`metrics.face.blinking[].detected`) stays on for 1 s. Quick natural blinks are ignored |
 | 😐 NEUTRAL | Stay | Never triggers anything; relaxing re-arms the controls |
 
 After an action there is a 2 second cooldown, and the same expression must relax before it
 can fire again. No face or an unclear expression does nothing. Buttons always work too.
+You choose how to go back (sad pout or eyes closed) on the camera setup screen.
 
 ## Project layout
 
@@ -89,7 +91,7 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
 | `preload.cjs` | Loads the official SDK preload and exposes the app settings |
 | `src/camera.js` | The only file that talks to SmartSpectra |
 | `src/reading.js` | Turns one SDK metrics packet into expression scores |
-| `src/controls.js` | Turns scores into "next" / "repeat" (pure logic, unit-tested) |
+| `src/controls.js` | Turns scores into "next" / "back" (pure logic, unit-tested). The expression-to-action map lives here |
 | `src/recipes.js` | Recipe data only (ingredients, equipment, safety, steps, timers). Add a recipe here |
 | `src/views.js` | Builds the recipe card and recipe details screens from the data |
 | `src/art.js` | Chef mascot and food illustrations, drawn as SVG in code |

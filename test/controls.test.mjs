@@ -39,11 +39,16 @@ test('relaxing then smiling again fires a second time after the cooldown', () =>
   assert.equal(second.length, 1);
 });
 
-test('surprise fires "repeat"', () => {
+test('a sad pout fires "back"', () => {
   const c = createExpressionControls();
   feed(c, face({ NEUTRAL: 90 }), 0, 1000);
-  const actions = feed(c, face({ SURPRISE: 85, NEUTRAL: 10 }), 1033, 3000);
-  assert.deepEqual(actions.map((a) => a.action), ['repeat']);
+  const actions = feed(c, face({ SAD: 80, NEUTRAL: 10 }), 1033, 3000);
+  assert.deepEqual(actions.map((a) => a.action), ['back']);
+});
+
+test('surprise no longer triggers anything', () => {
+  const c = createExpressionControls();
+  assert.equal(feed(c, face({ SURPRISE: 95 }), 0, 5000).length, 0);
 });
 
 test('neutral never fires anything', () => {
@@ -58,7 +63,7 @@ test('an uncertain expression below threshold does nothing', () => {
 
 test('happy that is not the strongest expression does nothing', () => {
   const c = createExpressionControls();
-  const actions = feed(c, face({ HAPPY: 62, SURPRISE: 70 }), 0, 5000);
+  const actions = feed(c, face({ HAPPY: 62, SAD: 70 }), 0, 5000);
   assert.ok(!actions.some((a) => a.action === 'next'));
   const c2 = createExpressionControls();
   assert.equal(feed(c2, face({ HAPPY: 65, NEUTRAL: 80 }), 0, 5000).length, 0);
@@ -78,4 +83,30 @@ test('one noisy frame does not trigger anything', () => {
   c.update(face({ HAPPY: 100, NEUTRAL: 0 }), 1033);
   const actions = feed(c, face({ NEUTRAL: 90 }), 1066, 4000);
   assert.equal(actions.length, 0);
+});
+
+const eyes = (closed) => ({ faceOk: true, eyesClosed: closed, scores: { HAPPY: 0, SAD: 0, NEUTRAL: 80 } });
+
+test('eyes mode: keeping eyes closed for a second fires "back" once', () => {
+  const c = createExpressionControls({ backGesture: 'eyes' });
+  feed(c, eyes(false), 0, 1000);
+  const actions = feed(c, eyes(true), 1033, 5000);
+  assert.deepEqual(actions.map((a) => a.action), ['back']);
+});
+
+test('eyes mode: normal quick blinks never fire', () => {
+  const c = createExpressionControls({ backGesture: 'eyes' });
+  let fired = 0;
+  for (let t = 0; t < 20000; t += 33) {
+    const blinking = t % 3000 < 200; // a 0.2 s blink every 3 s
+    if (c.update(eyes(blinking), t).action) fired += 1;
+  }
+  assert.equal(fired, 0);
+});
+
+test('eyes mode: sad pout does nothing, and sad mode ignores closed eyes', () => {
+  const c = createExpressionControls({ backGesture: 'eyes' });
+  assert.equal(feed(c, face({ SAD: 90 }), 0, 4000).length, 0);
+  const c2 = createExpressionControls({ backGesture: 'sad' });
+  assert.equal(feed(c2, eyes(true), 0, 4000).length, 0);
 });
