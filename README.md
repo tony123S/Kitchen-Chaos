@@ -10,7 +10,10 @@ next step, tilt your head to go back a step. Expressions are detected live by th
 
 Built for the Presage SmartSpectra Challenge (#presagechallenge).
 
-![Cooking mode: one step at a time, with live smile and head tilt meters](docs/screenshots/cooking.png)
+**Why:** I watched my mother follow a YouTube recipe with dirty hands. Every time she needed the
+next step she had to wipe her hands and touch the screen. Kitchen Chaos lets the recipe follow you instead.
+
+![Cooking mode: one step at a time, with smile and head tilt controls at the bottom](docs/screenshots/cooking.png)
 
 ## Screenshots
 
@@ -44,12 +47,16 @@ cp .env.example .env # Windows: copy .env.example .env
 npm start
 ```
 
-Pick a recipe, press **Start Cooking**, then **Allow camera and start**. Smile and hold it for a
-second to tick the test, then cook. In cooking mode: smile for the next step, tilt your head to
+Pick a recipe, press **Start Cooking**, then **Allow camera and start**. Smile and hold it for about
+half a second to tick the test, then cook. In cooking mode: smile for the next step, tilt your head to
 the left for a second to go back. The **Back / Repeat / Next** buttons and the keyboard (Left arrow, R,
 Right arrow or Space) always work too.
 
-VS Code terminal on macOS/Linux: if the window never opens, run `env -u ELECTRON_RUN_AS_NODE npm start`.
+### Troubleshooting
+
+- **`Cannot find package 'esbuild'`:** run `npm install --include=dev` (your npm may be set to skip dev packages).
+- **Smile or tilt not detected:** check the camera setup screen. The HAPPY bar and head tilt angle there are live SDK readings. Face the camera in good light, with your whole face in the frame.
+- **VS Code terminal on macOS/Linux:** if the window never opens, run `env -u ELECTRON_RUN_AS_NODE npm start`.
 
 ## Tests
 
