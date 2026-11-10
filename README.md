@@ -76,7 +76,7 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 | Preload | `@smartspectra/node-sdk/preload` (bundled into our own preload) |
 | Window | `SmartSpectraSDK` from `@smartspectra/node-sdk/renderer` |
 | Requested metrics | `faceMetrics` (face landmarks, blinking, talking, expressions) |
-| Live signals used | `metrics.face.expression[].scores`: HAPPY and NEUTRAL confidence (0 to 100), and `metrics.face.landmarks` for the head tilt |
+| Live signals used | `metrics.face.expression[].scores`: HAPPY, CONTEMPT (smirk) and NEUTRAL confidence (0 to 100), and `metrics.face.landmarks` for the head tilt |
 | Camera preview | `streamAvailable` event |
 | Face position help | `validationStatus` event (no face, too far, too close, and so on) |
 | Errors | `error` event (bad key, no internet, camera unavailable) |
@@ -85,7 +85,7 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 
 | Expression | Action | Rule |
 | --- | --- | --- |
-| 😊 HAPPY | Next step | Smoothed score at least 35, no other emotion (except NEUTRAL) more than 20 points higher, held 0.5 s |
+| 😊 Smile or smirk | Next step | Smile score = HAPPY + CONTEMPT (the SDK scores a smirk or half smile as CONTEMPT). Smoothed score at least 35, no other emotion (except NEUTRAL) more than 20 points higher, held 0.5 s. A relaxed smile is enough |
 | 🙃 Head tilt | Previous step | Head roll angle from the SDK's 478 face landmarks (`metrics.face.landmarks[].value`, outer eye corners 33 and 263) at least 15° from your normal upright angle, held 1 s |
 | 😐 NEUTRAL | Stay | Never triggers anything; relaxing re-arms the controls |
 

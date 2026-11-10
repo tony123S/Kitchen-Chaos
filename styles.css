@@ -83,7 +83,7 @@ body {
 .bar-row { display: grid; grid-template-columns: 92px 1fr 36px; align-items: center; gap: 8px; font-size: 14px; }
 .bar { height: 14px; background: #f3e6d6; border-radius: 999px; overflow: hidden; }
 .bar-fill { display: block; height: 100%; width: 0; background: #c9b39b; transition: width 0.15s; }
-.bar-row[data-name="HAPPY"] .bar-fill { background: var(--orange); }
+.bar-row[data-name="SMILE"] .bar-fill { background: var(--orange); }
 .bar-row[data-name="NEUTRAL"] .bar-fill { background: #7fa8c9; }
 .bar-value { text-align: right; font-variant-numeric: tabular-nums; }
 

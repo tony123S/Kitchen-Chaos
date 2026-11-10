@@ -214,6 +214,7 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
           for (const el of document.querySelectorAll('.expr')) {
             let name = el.dataset.expr;
             let value = result.smoothed[name];
+            if (name === 'HAPPY') value = result.smile;
             if (name === 'BACK') {
               name = TILT;
               value = result.candidate === TILT ? result.holdProgress * 100 : 0;

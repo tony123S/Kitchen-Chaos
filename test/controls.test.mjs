@@ -152,3 +152,15 @@ test('re-arms for a face whose resting HAPPY score is not zero', () => {
   feed(c, face({ HAPPY: 28, NEUTRAL: 70 }), 3033, 4500);
   assert.equal(feed(c, face({ HAPPY: 60, NEUTRAL: 30 }), 4533, 6500).length, 1);
 });
+
+test('a smirk (CONTEMPT) counts as a smile', () => {
+  const c = createExpressionControls();
+  feed(c, face({ NEUTRAL: 90 }), 0, 1000);
+  assert.deepEqual(feed(c, face({ CONTEMPT: 50, NEUTRAL: 60 }), 1033, 3000).map((a) => a.action), ['next']);
+});
+
+test('a small smile split between HAPPY and CONTEMPT still counts', () => {
+  const c = createExpressionControls();
+  feed(c, face({ NEUTRAL: 90 }), 0, 1000);
+  assert.equal(feed(c, face({ HAPPY: 22, CONTEMPT: 20, NEUTRAL: 70 }), 1033, 3000).length, 1);
+});

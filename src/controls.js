@@ -14,6 +14,16 @@
 // - No face, or no clear winner, means "not sure", and nothing happens.
 
 const ACTIONS = { HAPPY: 'next' };
+
+// A smirk (a half or one-sided smile) is scored by the SDK as CONTEMPT, so a
+// small smile is often split between HAPPY and CONTEMPT. Adding them means a
+// relaxed smile or smirk counts, and nobody has to grin hard all the time.
+const SMILE_PARTS = ['HAPPY', 'CONTEMPT'];
+export function smileScore(scores) {
+  if (!scores) return undefined;
+  const parts = SMILE_PARTS.map((n) => scores[n]).filter((v) => typeof v === 'number');
+  return parts.length ? Math.min(100, parts.reduce((a, b) => a + b, 0)) : undefined;
+}
 export const TILT = 'TILT';
 
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -121,9 +131,9 @@ export function createExpressionControls(overrides = {}) {
     // While the head is tilted, ignore expressions.
     if (tiltSince !== null) return tiltSnapshot(now, null);
 
-    const others = Object.fromEntries(Object.entries(smoothed).filter(([n]) => n !== 'HAPPY' && n !== 'NEUTRAL'));
+    const others = Object.fromEntries(Object.entries(smoothed).filter(([n]) => !SMILE_PARTS.includes(n) && n !== 'NEUTRAL'));
     const rival = strongest(others)?.value ?? 0;
-    const happy = smoothed.HAPPY ?? 0;
+    const happy = smileScore(smoothed) ?? 0;
     const next = happy >= settings.thresholds.HAPPY && rival - happy < settings.winMargin ? 'HAPPY' : null;
     // Re-arm once the smile has stopped counting. A fixed "relax below N"
     // never re-armed for faces whose resting HAPPY score is a bit high.
@@ -152,6 +162,7 @@ export function createExpressionControls(overrides = {}) {
       coolingDown: now < cooldownUntil,
       waitingToRelax: !armed.TILT,
       smoothed: { ...smoothed },
+      smile: smileScore(smoothed) ?? 0,
     };
   }
 
@@ -166,6 +177,7 @@ export function createExpressionControls(overrides = {}) {
       coolingDown: now < cooldownUntil,
       waitingToRelax: Boolean(candidate && !armed[candidate]),
       smoothed: { ...smoothed },
+      smile: smileScore(smoothed) ?? 0,
     };
   }
 

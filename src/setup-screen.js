@@ -1,8 +1,9 @@
 // Screen 5: camera consent, SmartSpectra start-up and a short expression test.
 
 import { $, statusText, showPreview, setBar } from './ui-bits.js';
+import { smileScore } from './controls.js';
 
-const TEST_EXPRESSIONS = ['HAPPY', 'NEUTRAL'];
+const TEST_EXPRESSIONS = ['SMILE', 'NEUTRAL']; // SMILE = HAPPY + CONTEMPT (smirk)
 
 export function createSetupScreen({ expressions, onBegin }) {
   let unsubscribe = null;
@@ -75,7 +76,7 @@ export function createSetupScreen({ expressions, onBegin }) {
           if (reading.faceOk) mark('face');
           for (const n of TEST_EXPRESSIONS) {
             if (!reading.scores) break;
-            const v = reading.scores[n];
+            const v = n === 'SMILE' ? smileScore(reading.scores) : reading.scores[n];
             setBar($(`setup-fill-${n}`), v);
             $(`setup-val-${n}`).textContent = v === undefined ? '-' : v.toFixed(0);
           }
