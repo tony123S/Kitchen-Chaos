@@ -17,14 +17,13 @@ const ACTIONS = { HAPPY: 'next' };
 export const TILT = 'TILT';
 
 export const DEFAULT_SETTINGS = Object.freeze({
-  smoothingMs: 500,
-  thresholds: { HAPPY: 45 },
-  holdMs: { HAPPY: 600 },
-  // HAPPY still counts if another expression is ahead by less than this.
-  // A real smile often scores close to NEUTRAL, so "must be the top score" was too strict.
+  smoothingMs: 350,
+  thresholds: { HAPPY: 35 },
+  holdMs: { HAPPY: 500 },
+  // HAPPY still counts if another emotion (not NEUTRAL) is ahead by less than this.
+  // NEUTRAL is ignored here: a real smile often scores lower than NEUTRAL.
   winMargin: 20,
-  rearmBelow: 25,
-  cooldownMs: 2000,
+  cooldownMs: 1500,
   tiltMs: 1000,
   tiltDegrees: 15,
 });
@@ -119,17 +118,16 @@ export function createExpressionControls(overrides = {}) {
       smoothed[name] = previous + alpha * (value - previous);
     }
 
-    // Re-arm the smile once it has relaxed.
-    for (const name of Object.keys(ACTIONS)) {
-      if ((smoothed[name] ?? 0) < settings.rearmBelow) armed[name] = true;
-    }
-
     // While the head is tilted, ignore expressions.
     if (tiltSince !== null) return tiltSnapshot(now, null);
 
-    const top = strongest(smoothed);
+    const others = Object.fromEntries(Object.entries(smoothed).filter(([n]) => n !== 'HAPPY' && n !== 'NEUTRAL'));
+    const rival = strongest(others)?.value ?? 0;
     const happy = smoothed.HAPPY ?? 0;
-    const next = top && happy >= settings.thresholds.HAPPY && top.value - happy < settings.winMargin ? 'HAPPY' : null;
+    const next = happy >= settings.thresholds.HAPPY && rival - happy < settings.winMargin ? 'HAPPY' : null;
+    // Re-arm once the smile has stopped counting. A fixed "relax below N"
+    // never re-armed for faces whose resting HAPPY score is a bit high.
+    if (next === null) armed.HAPPY = true;
     if (next !== candidate) {
       candidate = next;
       candidateSince = now;

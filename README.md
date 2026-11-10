@@ -85,11 +85,11 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 
 | Expression | Action | Rule |
 | --- | --- | --- |
-| 😊 HAPPY | Next step | Smoothed score at least 45, no other expression more than 20 points higher, held 0.6 s |
+| 😊 HAPPY | Next step | Smoothed score at least 35, no other emotion (except NEUTRAL) more than 20 points higher, held 0.5 s |
 | 🙃 Head tilt | Previous step | Head roll angle from the SDK's 478 face landmarks (`metrics.face.landmarks[].value`, outer eye corners 33 and 263) at least 15° from your normal upright angle, held 1 s |
 | 😐 NEUTRAL | Stay | Never triggers anything; relaxing re-arms the controls |
 
-After an action there is a 2 second cooldown, and the smile must relax (or the head straighten up) before it
+After an action there is a 1.5 second cooldown, and the smile must stop (or the head straighten up) before it
 can fire again. No face or an unclear expression does nothing. Buttons always work too.
 
 ## Project layout
