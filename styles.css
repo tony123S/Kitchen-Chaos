@@ -289,12 +289,12 @@ body {
 }
 
 /* ---------- Done (screen 8) ---------- */
-.done { min-height: 100vh; display: grid; place-items: center; text-align: center; }
+.done-screen { min-height: 100vh; display: grid; place-items: center; text-align: center; }
 .done-inner { max-width: 640px; }
 .done-pics { position: relative; }
 .done-pics .food-pic { max-width: 420px; margin: 0 auto; }
 .done-chef { width: 130px; position: absolute; right: 0; bottom: -20px; }
-.done h1 { font-size: 40px; margin: 28px 0 4px; }
+.done-screen h1 { font-size: 40px; margin: 28px 0 4px; }
 
 /* ---------- Sound panel (Phase 4) ---------- */
 .sound-panel { position: fixed; top: 10px; right: 14px; z-index: 50; }
