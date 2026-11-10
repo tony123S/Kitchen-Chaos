@@ -3,8 +3,8 @@
 // with plain numbers.
 //
 // - Next: a smile. HAPPY scores (0 to 100, from the SDK) are smoothed over
-//   about half a second. HAPPY only counts when its smoothed score passes the
-//   threshold AND it is the strongest expression on the face, and it must be
+//   about half a second. HAPPY counts when its smoothed score passes the
+//   threshold and no other expression is clearly stronger, and it must be
 //   held for a short time before the action fires.
 // - Back: tilting the head to the side for about a second (head roll angle
 //   from the SDK face landmarks, compared with the cook's normal angle).
@@ -18,9 +18,12 @@ export const TILT = 'TILT';
 
 export const DEFAULT_SETTINGS = Object.freeze({
   smoothingMs: 500,
-  thresholds: { HAPPY: 60 },
-  holdMs: { HAPPY: 800 },
-  rearmBelow: 30,
+  thresholds: { HAPPY: 45 },
+  holdMs: { HAPPY: 600 },
+  // HAPPY still counts if another expression is ahead by less than this.
+  // A real smile often scores close to NEUTRAL, so "must be the top score" was too strict.
+  winMargin: 20,
+  rearmBelow: 25,
   cooldownMs: 2000,
   tiltMs: 1000,
   tiltDegrees: 15,
@@ -62,9 +65,12 @@ export function createExpressionControls(overrides = {}) {
   function tiltedNow(reading) {
     if (!reading || typeof reading.roll !== 'number') return null;
     if (rollBaseline === null) rollBaseline = reading.roll;
-    const tilted = Math.abs(reading.roll - rollBaseline) >= settings.tiltDegrees;
+    // Difference wrapped to -180..180, so a camera image that puts the angle
+    // near +/-180 degrees does not look like a huge tilt.
+    const diff = ((((reading.roll - rollBaseline) % 360) + 540) % 360) - 180;
+    const tilted = Math.abs(diff) >= settings.tiltDegrees;
     // Learn the normal upright angle only while the head is not tilted.
-    if (!tilted) rollBaseline += 0.05 * (reading.roll - rollBaseline);
+    if (!tilted) rollBaseline += 0.05 * diff;
     return tilted;
   }
 
@@ -98,7 +104,9 @@ export function createExpressionControls(overrides = {}) {
       if (fired) return fired;
     }
 
-    if (!reading || !reading.faceOk || !reading.scores) {
+    // Scores in the packet mean the SDK found a face, even if it is a little
+    // off-centre, so only a packet without scores resets the smile.
+    if (!reading || !reading.scores) {
       resetExpression();
       return tiltSince !== null ? tiltSnapshot(now, null) : snapshot(now, null);
     }
@@ -120,7 +128,8 @@ export function createExpressionControls(overrides = {}) {
     if (tiltSince !== null) return tiltSnapshot(now, null);
 
     const top = strongest(smoothed);
-    const next = top && top.name in ACTIONS && top.value >= settings.thresholds[top.name] ? top.name : null;
+    const happy = smoothed.HAPPY ?? 0;
+    const next = top && happy >= settings.thresholds.HAPPY && top.value - happy < settings.winMargin ? 'HAPPY' : null;
     if (next !== candidate) {
       candidate = next;
       candidateSince = now;

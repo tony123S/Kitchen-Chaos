@@ -64,7 +64,7 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 
 | Expression | Action | Rule |
 | --- | --- | --- |
-| 😊 HAPPY | Next step | Smoothed score at least 60, strongest expression, held 0.8 s |
+| 😊 HAPPY | Next step | Smoothed score at least 45, no other expression more than 20 points higher, held 0.6 s |
 | 🙃 Head tilt | Previous step | Head roll angle from the SDK's 478 face landmarks (`metrics.face.landmarks[].value`, outer eye corners 33 and 263) at least 15° from your normal upright angle, held 1 s |
 | 😐 NEUTRAL | Stay | Never triggers anything; relaxing re-arms the controls |
 

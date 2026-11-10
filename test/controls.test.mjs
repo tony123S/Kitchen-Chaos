@@ -51,15 +51,15 @@ test('neutral never fires anything', () => {
 
 test('an uncertain expression below threshold does nothing', () => {
   const c = createExpressionControls();
-  assert.equal(feed(c, face({ HAPPY: 45, NEUTRAL: 40 }), 0, 5000).length, 0);
+  assert.equal(feed(c, face({ HAPPY: 35, NEUTRAL: 40 }), 0, 5000).length, 0);
 });
 
 test('happy that is not the strongest expression does nothing', () => {
   const c = createExpressionControls();
-  const actions = feed(c, face({ HAPPY: 62, SURPRISE: 70 }), 0, 5000);
+  const actions = feed(c, face({ HAPPY: 62, SURPRISE: 90 }), 0, 5000);
   assert.ok(!actions.some((a) => a.action === 'next'));
   const c2 = createExpressionControls();
-  assert.equal(feed(c2, face({ HAPPY: 65, NEUTRAL: 80 }), 0, 5000).length, 0);
+  assert.equal(feed(c2, face({ HAPPY: 65, NEUTRAL: 95 }), 0, 5000).length, 0);
 });
 
 test('losing the face resets the hold', () => {
@@ -115,4 +115,26 @@ test('a head tilt still counts when the SDK sends only landmarks', () => {
   feed(c, tilt(0), 0, 1000);
   const actions = feed(c, { faceOk: true, scores: null, roll: 25 }, 1033, 3000);
   assert.deepEqual(actions.map((a) => a.action), ['back']);
+});
+
+test('a gentle smile that scores close to neutral still fires', () => {
+  const c = createExpressionControls();
+  feed(c, face({ NEUTRAL: 90 }), 0, 1000);
+  const actions = feed(c, face({ HAPPY: 52, NEUTRAL: 60 }), 1033, 4000);
+  assert.deepEqual(actions.map((a) => a.action), ['next']);
+});
+
+test('a smile still counts when the face is slightly off-centre', () => {
+  const c = createExpressionControls();
+  const actions = feed(c, { faceOk: false, scores: { HAPPY: 80, NEUTRAL: 10 } }, 0, 3000);
+  assert.deepEqual(actions.map((a) => a.action), ['next']);
+});
+
+test('head angle near +/-180 degrees is not mistaken for a tilt', () => {
+  const c = createExpressionControls();
+  let fired = 0;
+  for (let t = 0; t <= 4000; t += 33) if (c.update(tilt(t % 66 ? 179 : -179), t).action) fired += 1;
+  assert.equal(fired, 0);
+  const smile = feed(c, { faceOk: true, roll: 179, scores: { HAPPY: 80, NEUTRAL: 10 } }, 4033, 6000);
+  assert.deepEqual(smile.map((a) => a.action), ['next']);
 });

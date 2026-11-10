@@ -20,7 +20,6 @@ export function createExpressionService(getConfig) {
     onHint: (hint, faceOk) => {
       state.hint = hint;
       state.faceOk = faceOk;
-      if (!faceOk) controls.update(null, performance.now());
       emit('hint', hint, faceOk);
     },
     onError: (message, kind) => { state.error = message; state.errorKind = kind; emit('error', message, kind); },
