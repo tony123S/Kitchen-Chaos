@@ -40,6 +40,8 @@ const config = {
 };
 
 function createWindow() {
+  // macOS shows the dock icon from the app, not the window.
+  if (process.platform === 'darwin' && app.dock) app.dock.setIcon(path.join(__dirname, 'assets', 'icon.png'));
   const win = new BrowserWindow({
     width: 1200,
     height: 820,
@@ -47,6 +49,7 @@ function createWindow() {
     minHeight: 600,
     backgroundColor: '#fff8ec',
     title: 'Kitchen Chaos',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'dist', 'preload.cjs'),
       contextIsolation: true,

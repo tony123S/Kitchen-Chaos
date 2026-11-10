@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon.png" alt="Kitchen Chaos app icon" width="128"></p>
+
 # Kitchen Chaos: Hands-Free Cooking Assistant
 
 **Cook Without Touching Your Screen!**
@@ -7,6 +9,18 @@ next step, tilt your head to go back a step. Expressions are detected live by th
 [Presage SmartSpectra SDK](https://smartspectra.presagetech.com/docs/nodejs).
 
 Built for the Presage SmartSpectra Challenge (#presagechallenge).
+
+![Cooking mode: one step at a time, with live smile and head tilt meters](docs/screenshots/cooking.png)
+
+## Screenshots
+
+| Welcome | Choose a recipe |
+| --- | --- |
+| ![Welcome screen with the chef mascot](docs/screenshots/welcome.png) | ![Recipe selection with pancakes and spaghetti bolognese](docs/screenshots/recipes.png) |
+| **Recipe details** | **Camera setup and expression test** |
+| ![Ingredients, equipment and steps for Fluffy Pancakes](docs/screenshots/details.png) | ![Camera consent and the quick expression test](docs/screenshots/setup.png) |
+| **Step timer (pause and resume)** | **Done!** |
+| ![A cooking step with its paused timer](docs/screenshots/timer.png) | ![Finished screen with the chef celebrating](docs/screenshots/done.png) |
 
 
 ## Requirements
@@ -92,6 +106,8 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
 | `src/music.js` | Background music composed in code with Web Audio |
 | `src/settings.js` | Remembers music and sound settings (local storage only) |
 | `src/app.js` | Screen switching; wires everything together |
+| `assets/icon.svg`, `assets/icon.png` | App icon (window, taskbar and dock) |
+| `docs/screenshots/` | Pictures used in this README |
 | `build.mjs` | Bundles the window code and preload with esbuild |
 
 ## Privacy
