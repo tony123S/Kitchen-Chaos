@@ -5,7 +5,7 @@ import { loadSettings, saveSettings } from '../src/settings.js';
 const memory = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) }; };
 
 test('settings default to music on, moderate volume, effects on', () => {
-  assert.deepEqual(loadSettings(memory()), { musicOn: true, musicVolume: 0.35, sfxOn: true, backGesture: 'sad' });
+  assert.deepEqual(loadSettings(memory()), { musicOn: true, musicVolume: 0.35, sfxOn: true, backGesture: 'tilt' });
 });
 
 test('settings are remembered and cleaned', () => {

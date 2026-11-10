@@ -7,6 +7,7 @@ import { createCookingSession } from './cooking.js';
 import { createTimer, formatTime } from './timer.js';
 import { chefSvg, foodSvg } from './art.js';
 import { sfx } from './sound.js';
+import { backLabel } from './back-gestures.js';
 
 const CHEF_LINES = {
   next: ['Yum, next step!', 'Great job, chef!', 'Onwards!', 'You are a natural!'],
@@ -133,7 +134,7 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
   function back(source) {
     if (session.back() === 'moved') {
       sfx.boing();
-      chef('surprised', source === 'face' ? (expressions.backGesture === 'eyes' ? 'Eyes closed detected! Going back one step.' : 'Sad face detected! Going back one step.') : 'Going back one step.');
+      chef('surprised', source === 'face' ? `${backLabel(expressions.backGesture).detected} Going back one step.` : 'Going back one step.');
       renderStep();
     } else if (source === 'face') {
       chef('confused', 'This is already the first step!');
@@ -196,9 +197,9 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
     enter(recipe, { restart = true } = {}) {
       if (restart || !session || session.recipe.id !== recipe.id) session = createCookingSession(recipe);
       expressions.resetControls();
-      const eyesMode = expressions.backGesture === 'eyes';
-      $('back-emoji').textContent = eyesMode ? '😌' : '🙁';
-      $('back-name').textContent = eyesMode ? 'EYES CLOSED 1s' : 'SAD';
+      const label = backLabel(expressions.backGesture);
+      $('back-emoji').textContent = label.emoji;
+      $('back-name').textContent = label.name;
       chef('idle', `Let's make ${recipe.name}!`);
       renderStep();
       unsubscribe = expressions.subscribe({
@@ -213,13 +214,14 @@ export function createCookingScreen({ expressions, onFinish, onExit }) {
         },
         error: () => renderStatus(expressions.state.status),
         reading: (reading, result) => {
-          const eyesMode = expressions.backGesture === 'eyes';
+          const mode = expressions.backGesture;
+          const gestureName = mode === 'eyes' ? 'EYES' : mode === 'tilt' ? 'TILT' : null;
           for (const el of document.querySelectorAll('.expr')) {
             let name = el.dataset.expr;
             let value = result.smoothed[name];
             if (name === 'BACK') {
-              name = eyesMode ? 'EYES' : 'SAD';
-              value = eyesMode ? result.holdProgress * 100 * (result.candidate === 'EYES') : result.smoothed.SAD;
+              name = gestureName ?? 'SAD';
+              value = gestureName ? result.holdProgress * 100 * (result.candidate === gestureName) : result.smoothed.SAD;
             }
             setBar(el.querySelector('.meter span'), value);
             el.classList.toggle('holding', result.candidate === name && result.holdProgress > 0 && !result.action);

@@ -3,7 +3,7 @@
 **Cook Without Touching Your Screen!**
 
 Kitchen Chaos lets you follow a recipe without touching your computer. Smile to go to the
-next step, make a sad pout to go back a step. Expressions are detected live by the
+next step, tilt your head to go back a step. Expressions are detected live by the
 [Presage SmartSpectra SDK](https://smartspectra.presagetech.com/docs/nodejs).
 
 Built for the Presage SmartSpectra Challenge (#presagechallenge).
@@ -41,8 +41,8 @@ npm start
 ```
 
 Pick a recipe, press **Start Cooking**, then **Allow camera and start**. Smile and hold it for a
-second to tick the test, then cook. In cooking mode: smile for the next step, make a sad pout
-to go back a step. The **Back / Repeat / Next** buttons and the keyboard (Left arrow, R,
+second to tick the test, then cook. In cooking mode: smile for the next step, tilt your head to
+the left for a second to go back (or pick a sad pout or closed eyes on the setup screen). The **Back / Repeat / Next** buttons and the keyboard (Left arrow, R,
 Right arrow or Space) always work too.
 
 VS Code terminal on macOS/Linux: if the window never opens, run `env -u ELECTRON_RUN_AS_NODE npm start`.
@@ -65,7 +65,7 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 | Preload | `@smartspectra/node-sdk/preload` (bundled into our own preload) |
 | Window | `SmartSpectraSDK` from `@smartspectra/node-sdk/renderer` |
 | Requested metrics | `faceMetrics` (face landmarks, blinking, talking, expressions) |
-| Live signals used | `metrics.face.expression[].scores`: HAPPY, SAD, NEUTRAL confidence (0 to 100), and `metrics.face.blinking[].detected` for the eyes-closed option |
+| Live signals used | `metrics.face.expression[].scores`: HAPPY, SAD, NEUTRAL confidence (0 to 100), `metrics.face.landmarks` for the head tilt, and `metrics.face.blinking[].detected` for the eyes-closed option |
 | Camera preview | `streamAvailable` event |
 | Face position help | `validationStatus` event (no face, too far, too close, and so on) |
 | Errors | `error` event (bad key, no internet, camera unavailable) |
@@ -75,13 +75,14 @@ decoding of real SDK metrics packets, and the recipe data and screens. They need
 | Expression | Action | Rule |
 | --- | --- | --- |
 | 😊 HAPPY | Next step | Smoothed score at least 60, strongest expression, held 0.8 s |
-| 🙁 SAD (a small pout) | Previous step | Smoothed score at least 50, strongest expression, held 0.8 s |
+| 🙃 Head tilt (default) | Previous step | Head roll angle from the SDK's 478 face landmarks (`metrics.face.landmarks[].value`, outer eye corners 33 and 263) at least 15° from your normal upright angle, held 1 s |
+| 🙁 SAD (a small pout, alternative) | Previous step | Smoothed score at least 50, strongest expression, held 0.8 s |
 | 😌 Eyes closed (alternative) | Previous step | SDK blink signal (`metrics.face.blinking[].detected`) stays on for 1 s. Quick natural blinks are ignored |
 | 😐 NEUTRAL | Stay | Never triggers anything; relaxing re-arms the controls |
 
 After an action there is a 2 second cooldown, and the same expression must relax before it
 can fire again. No face or an unclear expression does nothing. Buttons always work too.
-You choose how to go back (sad pout or eyes closed) on the camera setup screen.
+You choose how to go back (head tilt, sad pout or eyes closed) on the camera setup screen.
 
 ## Project layout
 

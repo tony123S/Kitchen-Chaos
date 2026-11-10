@@ -1,12 +1,10 @@
 // Screen 5: camera consent, SmartSpectra start-up and a short expression test.
 
 import { $, statusText, showPreview, setBar } from './ui-bits.js';
+import { backLabel } from './back-gestures.js';
 
 const TEST_EXPRESSIONS = ['HAPPY', 'SAD', 'NEUTRAL'];
-const BACK_TEXT = {
-  sad: 'Optional: make a sad pout 🙁 (turn the corners of your mouth down) to go back',
-  eyes: 'Optional: close your eyes for about 1 second 😌 to go back',
-};
+
 
 export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
   let unsubscribe = null;
@@ -56,7 +54,7 @@ export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
   function showBackChoice() {
     const mode = expressions.backGesture;
     for (const r of document.querySelectorAll('input[name="back-gesture"]')) r.checked = r.value === mode;
-    $('test-back').textContent = BACK_TEXT[mode];
+    $('test-back').textContent = backLabel(mode).test;
   }
   for (const r of document.querySelectorAll('input[name="back-gesture"]')) {
     r.addEventListener('change', () => {
@@ -109,11 +107,11 @@ export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
           $('setup-eyes').textContent = reading.eyesClosed === null
             ? 'no blink data yet'
             : `${reading.eyesClosed ? 'yes' : 'no'} · longest so far ${(longestClosed / 1000).toFixed(1)} s`;
+          if (typeof reading.roll === 'number') $('setup-tilt').textContent = `${reading.roll.toFixed(0)}°`;
           if (result.action === 'back') {
             mark('back');
-            flash(expressions.backGesture === 'eyes'
-              ? '😌 Eyes closed detected! That is how you go back.'
-              : '🙁 Sad face detected! That is how you go back.');
+            const l = backLabel(expressions.backGesture);
+            flash(`${l.emoji} ${l.detected} That is how you go back.`);
           }
         },
       });

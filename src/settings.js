@@ -2,7 +2,7 @@
 // Nothing else is stored by Kitchen Chaos.
 
 const KEY = 'kitchen-chaos-settings';
-const DEFAULTS = { musicOn: true, musicVolume: 0.35, sfxOn: true, backGesture: 'sad' };
+const DEFAULTS = { musicOn: true, musicVolume: 0.35, sfxOn: true, backGesture: 'tilt' };
 
 export function loadSettings(storage = globalThis.localStorage) {
   try {
@@ -11,7 +11,7 @@ export function loadSettings(storage = globalThis.localStorage) {
     out.musicVolume = Math.min(1, Math.max(0, Number(out.musicVolume) || 0));
     out.musicOn = Boolean(out.musicOn);
     out.sfxOn = Boolean(out.sfxOn);
-    out.backGesture = out.backGesture === 'eyes' ? 'eyes' : 'sad';
+    out.backGesture = ['sad', 'tilt', 'eyes'].includes(out.backGesture) ? out.backGesture : 'tilt';
     return out;
   } catch {
     return { ...DEFAULTS };

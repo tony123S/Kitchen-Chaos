@@ -13,9 +13,12 @@
 // - No face, or no clear winner, means "not sure", and nothing happens.
 
 // Which SDK signal does what. Change it here and the whole app follows.
-// HAPPY always means "next". "Back" is either a sad pout (SAD expression)
-// or keeping your eyes closed for about a second (SDK blink signal).
-export const BACK_GESTURES = Object.freeze(['sad', 'eyes']);
+// HAPPY always means "next". "Back" is one of:
+//   sad  - a sad pout (SAD expression score)
+//   tilt - tilting the head to the side for about a second (SDK face landmarks)
+//   eyes - keeping the eyes closed for about a second (SDK blink signal)
+export const BACK_GESTURES = Object.freeze(['sad', 'tilt', 'eyes']);
+const GESTURE_NAME = { tilt: 'TILT', eyes: 'EYES' };
 
 export function actionsFor(backGesture) {
   return backGesture === 'sad' ? { HAPPY: 'next', SAD: 'back' } : { HAPPY: 'next' };
@@ -29,6 +32,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   cooldownMs: 2000,
   backGesture: 'sad',
   eyesClosedMs: 1000,
+  tiltMs: 1000,
+  tiltDegrees: 15,
 });
 
 export function createExpressionControls(overrides = {}) {
@@ -45,8 +50,9 @@ export function createExpressionControls(overrides = {}) {
   let candidateSince = 0;
   let cooldownUntil = 0;
   let ACTIONS = actionsFor(settings.backGesture);
-  const armed = { HAPPY: true, SAD: true, EYES: true };
-  let eyesSince = null;
+  const armed = { HAPPY: true, SAD: true, GESTURE: true };
+  let eyesSince = null; // start of the current held gesture (eyes closed or head tilted)
+  let rollBaseline = null; // the cook's normal head angle, learned slowly
 
   function setBackGesture(mode) {
     settings.backGesture = BACK_GESTURES.includes(mode) ? mode : 'sad';
@@ -67,42 +73,62 @@ export function createExpressionControls(overrides = {}) {
   function reset() {
     resetExpression();
     eyesSince = null;
+    rollBaseline = null;
   }
 
-  // Eyes-closed gesture: the SDK blink signal must stay "detected" for about
-  // a second (short gaps under 300 ms are tolerated). Normal quick blinks are
+  const gestureName = () => GESTURE_NAME[settings.backGesture] ?? null;
+
+  /** Turns a reading into "is the back gesture being held right now?" (or null if unknown). */
+  function gestureOn(reading) {
+    if (!reading) return null;
+    if (settings.backGesture === 'eyes') return typeof reading.eyesClosed === 'boolean' ? reading.eyesClosed : null;
+    if (settings.backGesture === 'tilt') {
+      if (typeof reading.roll !== 'number') return null;
+      if (rollBaseline === null) rollBaseline = reading.roll;
+      const tilted = Math.abs(reading.roll - rollBaseline) >= settings.tiltDegrees;
+      // Learn the normal upright angle only while the head is not tilted.
+      if (!tilted) rollBaseline += 0.05 * (reading.roll - rollBaseline);
+      return tilted;
+    }
+    return null;
+  }
+
+  // Held gesture (eyes closed or head tilted) must last about a second; short
+  // gaps under 300 ms are tolerated. Quick natural blinks or head movements are
   // far shorter and are ignored. Returns a snapshot only when it fires.
-  function updateEyes(closed, now) {
+  function updateGesture(closed, now) {
     if (closed) {
       lastClosedAt = now;
       if (eyesSince === null) eyesSince = now;
     } else if (eyesSince === null || now - lastClosedAt > 300) {
       eyesSince = null;
-      armed.EYES = true;
+      armed.GESTURE = true;
     }
-    if (eyesSince !== null && armed.EYES && now >= cooldownUntil && now - eyesSince >= settings.eyesClosedMs) {
-      armed.EYES = false;
+    const holdMs = settings.backGesture === 'tilt' ? settings.tiltMs : settings.eyesClosedMs;
+    if (eyesSince !== null && armed.GESTURE && now >= cooldownUntil && now - eyesSince >= holdMs) {
+      armed.GESTURE = false;
       cooldownUntil = now + settings.cooldownMs;
       eyesSince = null;
-      return snapshot(now, 'back', 'EYES');
+      return snapshot(now, 'back', gestureName());
     }
     return null;
   }
 
   /**
-   * @param {{faceOk: boolean, scores: Record<string, number>|null, eyesClosed?: boolean|null} | null} reading
+   * @param {{faceOk: boolean, scores: Record<string, number>|null, eyesClosed?: boolean|null, roll?: number|null} | null} reading
    * @param {number} now time in milliseconds
    */
   function update(reading, now) {
-    const eyesMode = settings.backGesture === 'eyes';
-    if (eyesMode && reading && typeof reading.eyesClosed === 'boolean') {
-      const fired = updateEyes(reading.eyesClosed, now);
+    const gestureMode = gestureName() !== null;
+    const on = gestureMode ? gestureOn(reading) : null;
+    if (on !== null) {
+      const fired = updateGesture(on, now);
       if (fired) return fired;
     }
 
     if (!reading || !reading.faceOk || !reading.scores) {
       resetExpression();
-      return snapshot(now, null, eyesMode && eyesSince !== null ? 'EYES' : null);
+      return snapshot(now, null, gestureMode && eyesSince !== null ? gestureName() : null);
     }
 
     const dt = lastTime === null ? Infinity : Math.max(0, now - lastTime);
@@ -118,8 +144,8 @@ export function createExpressionControls(overrides = {}) {
       if ((smoothed[name] ?? 0) < settings.rearmBelow) armed[name] = true;
     }
 
-    // While the eyes are closed, ignore expressions.
-    if (eyesMode && eyesSince !== null) return snapshot(now, null, 'EYES');
+    // While the back gesture is being held, ignore expressions.
+    if (gestureMode && eyesSince !== null) return snapshot(now, null, gestureName());
 
     const top = strongest(smoothed);
     const next = top && top.name in ACTIONS && top.value >= settings.thresholds[top.name] ? top.name : null;
@@ -139,14 +165,15 @@ export function createExpressionControls(overrides = {}) {
 
   function snapshot(now, action, eyes = null) {
     if (eyes) {
-      const ready = armed.EYES && now >= cooldownUntil;
+      const ready = armed.GESTURE && now >= cooldownUntil;
+      const holdMs = settings.backGesture === 'tilt' ? settings.tiltMs : settings.eyesClosedMs;
       return {
         action,
-        expression: action ? 'EYES' : null,
-        candidate: 'EYES',
-        holdProgress: action ? 1 : ready && eyesSince !== null ? Math.min(1, (now - eyesSince) / settings.eyesClosedMs) : 0,
+        expression: action ? eyes : null,
+        candidate: eyes,
+        holdProgress: action ? 1 : ready && eyesSince !== null ? Math.min(1, (now - eyesSince) / holdMs) : 0,
         coolingDown: now < cooldownUntil,
-        waitingToRelax: !armed.EYES,
+        waitingToRelax: !armed.GESTURE,
         smoothed: { ...smoothed },
       };
     }

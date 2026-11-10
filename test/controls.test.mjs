@@ -128,3 +128,30 @@ test('eyes mode: brief flicker in the blink signal is tolerated', () => {
   }
   assert.equal(fired, 1);
 });
+
+const tilt = (roll) => ({ faceOk: true, roll, scores: { HAPPY: 0, SAD: 0, NEUTRAL: 80 } });
+
+test('tilt mode: holding a head tilt for a second fires "back" once', () => {
+  const c = createExpressionControls({ backGesture: 'tilt' });
+  feed(c, tilt(2), 0, 1500); // upright, slightly crooked camera
+  const actions = feed(c, tilt(24), 1533, 6000);
+  assert.deepEqual(actions.map((a) => a.action), ['back']);
+});
+
+test('tilt mode: small or quick head movements do nothing', () => {
+  const c = createExpressionControls({ backGesture: 'tilt' });
+  assert.equal(feed(c, tilt(8), 0, 4000).length, 0);
+  let fired = 0;
+  for (let t = 4000; t < 20000; t += 33) {
+    if (c.update(tilt(t % 3000 < 300 ? 25 : 0), t).action) fired += 1; // 0.3 s nods
+  }
+  assert.equal(fired, 0);
+});
+
+test('tilt mode: must straighten up before it can fire again', () => {
+  const c = createExpressionControls({ backGesture: 'tilt' });
+  feed(c, tilt(0), 0, 1000);
+  assert.equal(feed(c, tilt(25), 1033, 8000).length, 1);
+  feed(c, tilt(0), 8033, 9000);
+  assert.equal(feed(c, tilt(25), 9033, 11000).length, 1);
+});
