@@ -167,6 +167,11 @@
         <p class="eyebrow" id="cook-recipe">Recipe</p>
         <h1 id="cook-stepno">Step 1 of 5</h1>
       </div>
+      <div class="music-controls" aria-label="Background music controls">
+        <button class="btn small" id="btn-music-toggle" type="button" aria-pressed="false">♫ Music: Off</button>
+        <label for="music-volume">Volume</label>
+        <input id="music-volume" type="range" min="0" max="100" value="16" step="1" aria-label="Music volume">
+      </div>
       <button class="btn" id="btn-exit">Exit cooking</button>
     </div>
     <ol class="progress" id="cook-progress" aria-label="Recipe progress"></ol>
