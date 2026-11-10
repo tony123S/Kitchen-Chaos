@@ -12,7 +12,7 @@ export function expressionName(type) {
 
 /**
  * Pulls the newest expression scores out of one metrics packet.
- * @returns {{faceOk: boolean, stable: boolean, scores: Record<string, number>, eyesClosed: boolean|null, roll: number|null} | null}
+ * @returns {{faceOk: boolean, stable: boolean, scores: Record<string, number>, roll: number|null} | null}
  */
 // MediaPipe face mesh indices (SmartSpectra uses the same 478-point layout):
 // 33 = outer corner of one eye, 263 = outer corner of the other eye.
@@ -36,18 +36,14 @@ export function readExpression(buf, faceOk) {
   const marks = metrics?.face?.landmarks;
   const roll = marks && marks.length ? headRoll(marks[marks.length - 1].value) : null;
   const list = metrics?.face?.expression;
-  const blinks = metrics?.face?.blinking;
-  // SDK blink status in this packet: true if any entry says "detected",
-  // false if entries say not detected, null if the packet had no blink data.
-  const eyesClosed = blinks && blinks.length ? blinks.some((b) => Boolean(b.detected)) : null;
   if (!list || list.length === 0) {
-    // Packets with only blink data still matter for the eyes-closed control.
-    return eyesClosed === null && roll === null ? null : { faceOk, stable: false, scores: null, eyesClosed, roll };
+    // Packets with only landmarks still matter for the head-tilt control.
+    return roll === null ? null : { faceOk, stable: false, scores: null, roll };
   }
   const latest = list[list.length - 1];
   const scores = {};
   for (const score of latest.scores ?? []) {
     scores[expressionName(score.type)] = score.confidence ?? 0;
   }
-  return { faceOk, stable: Boolean(latest.stable), scores, eyesClosed, roll };
+  return { faceOk, stable: Boolean(latest.stable), scores, roll };
 }

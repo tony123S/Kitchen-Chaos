@@ -1,17 +1,13 @@
 // Screen 5: camera consent, SmartSpectra start-up and a short expression test.
 
 import { $, statusText, showPreview, setBar } from './ui-bits.js';
-import { backLabel } from './back-gestures.js';
 
-const TEST_EXPRESSIONS = ['HAPPY', 'SAD', 'NEUTRAL'];
+const TEST_EXPRESSIONS = ['HAPPY', 'NEUTRAL'];
 
-
-export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
+export function createSetupScreen({ expressions, onBegin }) {
   let unsubscribe = null;
   let passed = { camera: false, face: false, smile: false, back: false };
   let bannerTimer = null;
-  let closedSince = null;
-  let longestClosed = 0;
 
   $('setup-bars').innerHTML = TEST_EXPRESSIONS.map((n) => `
     <div class="bar-row" data-name="${n}"><span class="bar-label">${n}</span>
@@ -51,21 +47,6 @@ export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
     await expressions.start();
   }
 
-  function showBackChoice() {
-    const mode = expressions.backGesture;
-    for (const r of document.querySelectorAll('input[name="back-gesture"]')) r.checked = r.value === mode;
-    $('test-back').textContent = backLabel(mode).test;
-  }
-  for (const r of document.querySelectorAll('input[name="back-gesture"]')) {
-    r.addEventListener('change', () => {
-      expressions.setBackGesture(r.value);
-      onBackGesture?.(r.value);
-      passed.back = false;
-      $('test-back').classList.remove('ok');
-      showBackChoice();
-    });
-  }
-
   $('btn-allow').addEventListener('click', startCamera);
   $('btn-setup-retry').addEventListener('click', startCamera);
   $('btn-setup-stop').addEventListener('click', () => expressions.stop());
@@ -76,7 +57,6 @@ export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
   return {
     enter(recipe) {
       $('setup-recipe').textContent = `Next up: ${recipe.name}. First, let's make sure SmartSpectra can see your expressions.`;
-      showBackChoice();
       const running = expressions.isRunning();
       $('consent').hidden = running;
       $('setup-live').hidden = !running;
@@ -101,17 +81,10 @@ export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
           }
           $('setup-hold').style.width = `${Math.round(result.holdProgress * 100)}%`;
           if (result.action === 'next') { mark('smile'); flash('😊 Happy expression detected! Great smile.'); }
-          const t = performance.now();
-          if (reading.eyesClosed) { if (closedSince === null) closedSince = t; longestClosed = Math.max(longestClosed, t - closedSince); }
-          else if (reading.eyesClosed === false) closedSince = null;
-          $('setup-eyes').textContent = reading.eyesClosed === null
-            ? 'no blink data yet'
-            : `${reading.eyesClosed ? 'yes' : 'no'} · longest so far ${(longestClosed / 1000).toFixed(1)} s`;
           if (typeof reading.roll === 'number') $('setup-tilt').textContent = `${reading.roll.toFixed(0)}°`;
           if (result.action === 'back') {
             mark('back');
-            const l = backLabel(expressions.backGesture);
-            flash(`${l.emoji} ${l.detected} That is how you go back.`);
+            flash('🙃 Head tilt detected! That is how you go back.');
           }
         },
       });

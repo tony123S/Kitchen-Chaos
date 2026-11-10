@@ -84,7 +84,6 @@ body {
 .bar { height: 14px; background: #f3e6d6; border-radius: 999px; overflow: hidden; }
 .bar-fill { display: block; height: 100%; width: 0; background: #c9b39b; transition: width 0.15s; }
 .bar-row[data-name="HAPPY"] .bar-fill { background: var(--orange); }
-.bar-row[data-name="SAD"] .bar-fill { background: #8f6ad6; }
 .bar-row[data-name="NEUTRAL"] .bar-fill { background: #7fa8c9; }
 .bar-value { text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -329,7 +328,3 @@ body {
   #btn-exit { padding: 8px 14px; font-size: 15px; }
 }
 
-.back-choice { border: 2px solid #f3e2c9; border-radius: 12px; padding: 8px 12px 10px; margin: 0 0 12px; display: flex; gap: 14px; flex-wrap: wrap; }
-.back-choice legend { font-weight: 700; padding: 0 4px; }
-.back-choice label { display: flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; }
-.back-choice input { accent-color: var(--orange); width: 18px; height: 18px; }

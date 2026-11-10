@@ -39,13 +39,6 @@ test('relaxing then smiling again fires a second time after the cooldown', () =>
   assert.equal(second.length, 1);
 });
 
-test('a sad pout fires "back"', () => {
-  const c = createExpressionControls();
-  feed(c, face({ NEUTRAL: 90 }), 0, 1000);
-  const actions = feed(c, face({ SAD: 80, NEUTRAL: 10 }), 1033, 3000);
-  assert.deepEqual(actions.map((a) => a.action), ['back']);
-});
-
 test('surprise no longer triggers anything', () => {
   const c = createExpressionControls();
   assert.equal(feed(c, face({ SURPRISE: 95 }), 0, 5000).length, 0);
@@ -63,7 +56,7 @@ test('an uncertain expression below threshold does nothing', () => {
 
 test('happy that is not the strongest expression does nothing', () => {
   const c = createExpressionControls();
-  const actions = feed(c, face({ HAPPY: 62, SAD: 70 }), 0, 5000);
+  const actions = feed(c, face({ HAPPY: 62, SURPRISE: 70 }), 0, 5000);
   assert.ok(!actions.some((a) => a.action === 'next'));
   const c2 = createExpressionControls();
   assert.equal(feed(c2, face({ HAPPY: 65, NEUTRAL: 80 }), 0, 5000).length, 0);
@@ -85,61 +78,17 @@ test('one noisy frame does not trigger anything', () => {
   assert.equal(actions.length, 0);
 });
 
-const eyes = (closed) => ({ faceOk: true, eyesClosed: closed, scores: { HAPPY: 0, SAD: 0, NEUTRAL: 80 } });
+const tilt = (roll) => ({ faceOk: true, roll, scores: { HAPPY: 0, NEUTRAL: 80 } });
 
-test('eyes mode: keeping eyes closed for a second fires "back" once', () => {
-  const c = createExpressionControls({ backGesture: 'eyes' });
-  feed(c, eyes(false), 0, 1000);
-  const actions = feed(c, eyes(true), 1033, 5000);
-  assert.deepEqual(actions.map((a) => a.action), ['back']);
-});
-
-test('eyes mode: normal quick blinks never fire', () => {
-  const c = createExpressionControls({ backGesture: 'eyes' });
-  let fired = 0;
-  for (let t = 0; t < 20000; t += 33) {
-    const blinking = t % 3000 < 200; // a 0.2 s blink every 3 s
-    if (c.update(eyes(blinking), t).action) fired += 1;
-  }
-  assert.equal(fired, 0);
-});
-
-test('eyes mode: sad pout does nothing, and sad mode ignores closed eyes', () => {
-  const c = createExpressionControls({ backGesture: 'eyes' });
-  assert.equal(feed(c, face({ SAD: 90 }), 0, 4000).length, 0);
-  const c2 = createExpressionControls({ backGesture: 'sad' });
-  assert.equal(feed(c2, eyes(true), 0, 4000).length, 0);
-});
-
-test('eyes mode: closed eyes still count when the SDK only sends blink data or loses the face', () => {
-  const c = createExpressionControls({ backGesture: 'eyes' });
-  feed(c, eyes(false), 0, 500);
-  const actions = feed(c, { faceOk: false, scores: null, eyesClosed: true }, 533, 3000);
-  assert.deepEqual(actions.map((a) => a.action), ['back']);
-});
-
-test('eyes mode: brief flicker in the blink signal is tolerated', () => {
-  const c = createExpressionControls({ backGesture: 'eyes' });
-  feed(c, eyes(false), 0, 500);
-  let fired = 0;
-  for (let t = 533; t < 3000; t += 33) {
-    const flicker = Math.floor(t / 100) % 3 === 0; // signal drops for ~100 ms now and then
-    if (c.update(eyes(!flicker), t).action === 'back') fired += 1;
-  }
-  assert.equal(fired, 1);
-});
-
-const tilt = (roll) => ({ faceOk: true, roll, scores: { HAPPY: 0, SAD: 0, NEUTRAL: 80 } });
-
-test('tilt mode: holding a head tilt for a second fires "back" once', () => {
-  const c = createExpressionControls({ backGesture: 'tilt' });
+test('head tilt: holding a head tilt for a second fires "back" once', () => {
+  const c = createExpressionControls();
   feed(c, tilt(2), 0, 1500); // upright, slightly crooked camera
   const actions = feed(c, tilt(24), 1533, 6000);
   assert.deepEqual(actions.map((a) => a.action), ['back']);
 });
 
-test('tilt mode: small or quick head movements do nothing', () => {
-  const c = createExpressionControls({ backGesture: 'tilt' });
+test('head tilt: small or quick head movements do nothing', () => {
+  const c = createExpressionControls();
   assert.equal(feed(c, tilt(8), 0, 4000).length, 0);
   let fired = 0;
   for (let t = 4000; t < 20000; t += 33) {
@@ -148,10 +97,22 @@ test('tilt mode: small or quick head movements do nothing', () => {
   assert.equal(fired, 0);
 });
 
-test('tilt mode: must straighten up before it can fire again', () => {
-  const c = createExpressionControls({ backGesture: 'tilt' });
+test('head tilt: must straighten up before it can fire again', () => {
+  const c = createExpressionControls();
   feed(c, tilt(0), 0, 1000);
   assert.equal(feed(c, tilt(25), 1033, 8000).length, 1);
   feed(c, tilt(0), 8033, 9000);
   assert.equal(feed(c, tilt(25), 9033, 11000).length, 1);
+});
+
+test('a sad pout no longer does anything', () => {
+  const c = createExpressionControls();
+  assert.equal(feed(c, face({ SAD: 90 }), 0, 5000).length, 0);
+});
+
+test('a head tilt still counts when the SDK sends only landmarks', () => {
+  const c = createExpressionControls();
+  feed(c, tilt(0), 0, 1000);
+  const actions = feed(c, { faceOk: true, scores: null, roll: 25 }, 1033, 3000);
+  assert.deepEqual(actions.map((a) => a.action), ['back']);
 });

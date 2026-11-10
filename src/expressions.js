@@ -40,8 +40,6 @@ export function createExpressionService(getConfig) {
     stop: () => camera.stop(),
     isRunning: () => camera.isRunning(),
     resetControls: () => controls.reset(),
-    setBackGesture: (mode) => controls.setBackGesture(mode),
-    get backGesture() { return controls.settings.backGesture; },
     /** Subscribe with any of: status, preview, hint, error, reading. Returns an unsubscribe function. */
     subscribe(handlers) {
       listeners.add(handlers);

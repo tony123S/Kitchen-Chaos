@@ -1,37 +1,27 @@
-// Expression controls: turns live SmartSpectra expression scores into
-// "next" and "back" actions. Pure logic with no camera or DOM code, so it
-// can be unit-tested with plain numbers.
+// Face controls: turns live SmartSpectra readings into "next" and "back"
+// actions. Pure logic with no camera or DOM code, so it can be unit-tested
+// with plain numbers.
 //
-// Rules:
-// - Scores (0 to 100, from the SDK) are smoothed over about half a second.
-// - An expression only counts when its smoothed score passes its threshold
-//   AND it is the strongest expression on the face.
-// - It must be held for a short time before the action fires.
-// - After any action there is a cooldown, and that expression must relax
-//   (drop below the re-arm level) before it can fire again. Holding a smile
-//   never skips several steps.
+// - Next: a smile. HAPPY scores (0 to 100, from the SDK) are smoothed over
+//   about half a second. HAPPY only counts when its smoothed score passes the
+//   threshold AND it is the strongest expression on the face, and it must be
+//   held for a short time before the action fires.
+// - Back: tilting the head to the side for about a second (head roll angle
+//   from the SDK face landmarks, compared with the cook's normal angle).
+// - After any action there is a cooldown, and the smile must relax (or the
+//   head straighten up) before it can fire again. Holding a smile never skips
+//   several steps.
 // - No face, or no clear winner, means "not sure", and nothing happens.
 
-// Which SDK signal does what. Change it here and the whole app follows.
-// HAPPY always means "next". "Back" is one of:
-//   sad  - a sad pout (SAD expression score)
-//   tilt - tilting the head to the side for about a second (SDK face landmarks)
-//   eyes - keeping the eyes closed for about a second (SDK blink signal)
-export const BACK_GESTURES = Object.freeze(['sad', 'tilt', 'eyes']);
-const GESTURE_NAME = { tilt: 'TILT', eyes: 'EYES' };
-
-export function actionsFor(backGesture) {
-  return backGesture === 'sad' ? { HAPPY: 'next', SAD: 'back' } : { HAPPY: 'next' };
-}
+const ACTIONS = { HAPPY: 'next' };
+export const TILT = 'TILT';
 
 export const DEFAULT_SETTINGS = Object.freeze({
   smoothingMs: 500,
-  thresholds: { HAPPY: 60, SAD: 50 },
-  holdMs: { HAPPY: 800, SAD: 800 },
+  thresholds: { HAPPY: 60 },
+  holdMs: { HAPPY: 800 },
   rearmBelow: 30,
   cooldownMs: 2000,
-  backGesture: 'sad',
-  eyesClosedMs: 1000,
   tiltMs: 1000,
   tiltDegrees: 15,
 });
@@ -49,18 +39,10 @@ export function createExpressionControls(overrides = {}) {
   let candidate = null;
   let candidateSince = 0;
   let cooldownUntil = 0;
-  let ACTIONS = actionsFor(settings.backGesture);
-  const armed = { HAPPY: true, SAD: true, GESTURE: true };
-  let eyesSince = null; // start of the current held gesture (eyes closed or head tilted)
+  const armed = { HAPPY: true, TILT: true };
+  let tiltSince = null; // start of the current head tilt
+  let lastTiltedAt = 0;
   let rollBaseline = null; // the cook's normal head angle, learned slowly
-
-  function setBackGesture(mode) {
-    settings.backGesture = BACK_GESTURES.includes(mode) ? mode : 'sad';
-    ACTIONS = actionsFor(settings.backGesture);
-    reset();
-  }
-
-  let lastClosedAt = 0;
 
   // Clears the expression smoothing (used when the face is lost).
   function resetExpression() {
@@ -72,63 +54,53 @@ export function createExpressionControls(overrides = {}) {
 
   function reset() {
     resetExpression();
-    eyesSince = null;
+    tiltSince = null;
     rollBaseline = null;
   }
 
-  const gestureName = () => GESTURE_NAME[settings.backGesture] ?? null;
-
-  /** Turns a reading into "is the back gesture being held right now?" (or null if unknown). */
-  function gestureOn(reading) {
-    if (!reading) return null;
-    if (settings.backGesture === 'eyes') return typeof reading.eyesClosed === 'boolean' ? reading.eyesClosed : null;
-    if (settings.backGesture === 'tilt') {
-      if (typeof reading.roll !== 'number') return null;
-      if (rollBaseline === null) rollBaseline = reading.roll;
-      const tilted = Math.abs(reading.roll - rollBaseline) >= settings.tiltDegrees;
-      // Learn the normal upright angle only while the head is not tilted.
-      if (!tilted) rollBaseline += 0.05 * (reading.roll - rollBaseline);
-      return tilted;
-    }
-    return null;
+  /** Is the head tilted right now? null when the reading has no head angle. */
+  function tiltedNow(reading) {
+    if (!reading || typeof reading.roll !== 'number') return null;
+    if (rollBaseline === null) rollBaseline = reading.roll;
+    const tilted = Math.abs(reading.roll - rollBaseline) >= settings.tiltDegrees;
+    // Learn the normal upright angle only while the head is not tilted.
+    if (!tilted) rollBaseline += 0.05 * (reading.roll - rollBaseline);
+    return tilted;
   }
 
-  // Held gesture (eyes closed or head tilted) must last about a second; short
-  // gaps under 300 ms are tolerated. Quick natural blinks or head movements are
-  // far shorter and are ignored. Returns a snapshot only when it fires.
-  function updateGesture(closed, now) {
-    if (closed) {
-      lastClosedAt = now;
-      if (eyesSince === null) eyesSince = now;
-    } else if (eyesSince === null || now - lastClosedAt > 300) {
-      eyesSince = null;
-      armed.GESTURE = true;
+  // The tilt must last about a second; short gaps under 300 ms are tolerated.
+  // Quick natural head movements are far shorter and are ignored.
+  function updateTilt(tilted, now) {
+    if (tilted) {
+      lastTiltedAt = now;
+      if (tiltSince === null) tiltSince = now;
+    } else if (tiltSince === null || now - lastTiltedAt > 300) {
+      tiltSince = null;
+      armed.TILT = true;
     }
-    const holdMs = settings.backGesture === 'tilt' ? settings.tiltMs : settings.eyesClosedMs;
-    if (eyesSince !== null && armed.GESTURE && now >= cooldownUntil && now - eyesSince >= holdMs) {
-      armed.GESTURE = false;
+    if (tiltSince !== null && armed.TILT && now >= cooldownUntil && now - tiltSince >= settings.tiltMs) {
+      armed.TILT = false;
       cooldownUntil = now + settings.cooldownMs;
-      eyesSince = null;
-      return snapshot(now, 'back', gestureName());
+      tiltSince = null;
+      return tiltSnapshot(now, 'back');
     }
     return null;
   }
 
   /**
-   * @param {{faceOk: boolean, scores: Record<string, number>|null, eyesClosed?: boolean|null, roll?: number|null} | null} reading
+   * @param {{faceOk: boolean, scores: Record<string, number>|null, roll?: number|null} | null} reading
    * @param {number} now time in milliseconds
    */
   function update(reading, now) {
-    const gestureMode = gestureName() !== null;
-    const on = gestureMode ? gestureOn(reading) : null;
-    if (on !== null) {
-      const fired = updateGesture(on, now);
+    const tilted = tiltedNow(reading);
+    if (tilted !== null) {
+      const fired = updateTilt(tilted, now);
       if (fired) return fired;
     }
 
     if (!reading || !reading.faceOk || !reading.scores) {
       resetExpression();
-      return snapshot(now, null, gestureMode && eyesSince !== null ? gestureName() : null);
+      return tiltSince !== null ? tiltSnapshot(now, null) : snapshot(now, null);
     }
 
     const dt = lastTime === null ? Infinity : Math.max(0, now - lastTime);
@@ -139,13 +111,13 @@ export function createExpressionControls(overrides = {}) {
       smoothed[name] = previous + alpha * (value - previous);
     }
 
-    // Re-arm any expression that has relaxed.
+    // Re-arm the smile once it has relaxed.
     for (const name of Object.keys(ACTIONS)) {
       if ((smoothed[name] ?? 0) < settings.rearmBelow) armed[name] = true;
     }
 
-    // While the back gesture is being held, ignore expressions.
-    if (gestureMode && eyesSince !== null) return snapshot(now, null, gestureName());
+    // While the head is tilted, ignore expressions.
+    if (tiltSince !== null) return tiltSnapshot(now, null);
 
     const top = strongest(smoothed);
     const next = top && top.name in ACTIONS && top.value >= settings.thresholds[top.name] ? top.name : null;
@@ -163,25 +135,25 @@ export function createExpressionControls(overrides = {}) {
     return snapshot(now, action);
   }
 
-  function snapshot(now, action, eyes = null) {
-    if (eyes) {
-      const ready = armed.GESTURE && now >= cooldownUntil;
-      const holdMs = settings.backGesture === 'tilt' ? settings.tiltMs : settings.eyesClosedMs;
-      return {
-        action,
-        expression: action ? eyes : null,
-        candidate: eyes,
-        holdProgress: action ? 1 : ready && eyesSince !== null ? Math.min(1, (now - eyesSince) / holdMs) : 0,
-        coolingDown: now < cooldownUntil,
-        waitingToRelax: !armed.GESTURE,
-        smoothed: { ...smoothed },
-      };
-    }
+  function tiltSnapshot(now, action) {
+    const ready = armed.TILT && now >= cooldownUntil;
+    return {
+      action,
+      expression: action ? TILT : null,
+      candidate: TILT,
+      holdProgress: action ? 1 : ready && tiltSince !== null ? Math.min(1, (now - tiltSince) / settings.tiltMs) : 0,
+      coolingDown: now < cooldownUntil,
+      waitingToRelax: !armed.TILT,
+      smoothed: { ...smoothed },
+    };
+  }
+
+  function snapshot(now, action) {
     const holdMs = candidate ? settings.holdMs[candidate] : 0;
     const ready = Boolean(candidate && armed[candidate] && now >= cooldownUntil);
     return {
       action,
-      expression: action ? Object.keys(ACTIONS).find((k) => ACTIONS[k] === action) : null,
+      expression: action ? 'HAPPY' : null,
       candidate,
       holdProgress: ready ? Math.min(1, (now - candidateSince) / holdMs) : 0,
       coolingDown: now < cooldownUntil,
@@ -190,7 +162,7 @@ export function createExpressionControls(overrides = {}) {
     };
   }
 
-  return { update, reset, setBackGesture, settings };
+  return { update, reset, settings };
 }
 
 function strongest(scores) {

@@ -16,12 +16,9 @@ const state = { screen: 'welcome', recipe: null };
 const getConfig = async () => (window.kitchenChaos ? window.kitchenChaos.getConfig() : { apiKey: '', telemetry: false });
 const expressions = createExpressionService(getConfig);
 const settings = loadSettings();
-
-expressions.setBackGesture(settings.backGesture);
 const setup = createSetupScreen({
   expressions,
   onBegin: () => show('cooking'),
-  onBackGesture: (mode) => { settings.backGesture = mode; saveSettings(settings); },
 });
 const cooking = createCookingScreen({
   expressions,
