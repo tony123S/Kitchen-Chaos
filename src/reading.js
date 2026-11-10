@@ -18,9 +18,13 @@ export function readExpression(buf, faceOk) {
   const metrics = decodeMetrics(buf);
   const list = metrics?.face?.expression;
   const blinks = metrics?.face?.blinking;
-  // Latest SDK blink status in this packet: true, false, or null if none sent.
-  const eyesClosed = blinks && blinks.length ? Boolean(blinks[blinks.length - 1].detected) : null;
-  if (!list || list.length === 0) return null;
+  // SDK blink status in this packet: true if any entry says "detected",
+  // false if entries say not detected, null if the packet had no blink data.
+  const eyesClosed = blinks && blinks.length ? blinks.some((b) => Boolean(b.detected)) : null;
+  if (!list || list.length === 0) {
+    // Packets with only blink data still matter for the eyes-closed control.
+    return eyesClosed === null ? null : { faceOk, stable: false, scores: null, eyesClosed };
+  }
   const latest = list[list.length - 1];
   const scores = {};
   for (const score of latest.scores ?? []) {

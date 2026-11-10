@@ -30,7 +30,11 @@ test('reads the newest blink status', () => {
   assert.equal(readExpression(buf, true).eyesClosed, true);
 });
 
-test('returns null when a packet has no expression data', () => {
-  assert.equal(readExpression(encode({ face: { blinking: [{ detected: true }] } }), true), null);
+test('blink-only packets are kept for the eyes-closed control', () => {
+  assert.deepEqual(readExpression(encode({ face: { blinking: [{ detected: true }] } }), true),
+    { faceOk: true, stable: false, scores: null, eyesClosed: true });
+});
+
+test('returns null when a packet has no face data', () => {
   assert.equal(readExpression(encode({}), true), null);
 });

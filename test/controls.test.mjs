@@ -110,3 +110,21 @@ test('eyes mode: sad pout does nothing, and sad mode ignores closed eyes', () =>
   const c2 = createExpressionControls({ backGesture: 'sad' });
   assert.equal(feed(c2, eyes(true), 0, 4000).length, 0);
 });
+
+test('eyes mode: closed eyes still count when the SDK only sends blink data or loses the face', () => {
+  const c = createExpressionControls({ backGesture: 'eyes' });
+  feed(c, eyes(false), 0, 500);
+  const actions = feed(c, { faceOk: false, scores: null, eyesClosed: true }, 533, 3000);
+  assert.deepEqual(actions.map((a) => a.action), ['back']);
+});
+
+test('eyes mode: brief flicker in the blink signal is tolerated', () => {
+  const c = createExpressionControls({ backGesture: 'eyes' });
+  feed(c, eyes(false), 0, 500);
+  let fired = 0;
+  for (let t = 533; t < 3000; t += 33) {
+    const flicker = Math.floor(t / 100) % 3 === 0; // signal drops for ~100 ms now and then
+    if (c.update(eyes(!flicker), t).action === 'back') fired += 1;
+  }
+  assert.equal(fired, 1);
+});

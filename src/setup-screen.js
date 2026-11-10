@@ -12,6 +12,8 @@ export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
   let unsubscribe = null;
   let passed = { camera: false, face: false, smile: false, back: false };
   let bannerTimer = null;
+  let closedSince = null;
+  let longestClosed = 0;
 
   $('setup-bars').innerHTML = TEST_EXPRESSIONS.map((n) => `
     <div class="bar-row" data-name="${n}"><span class="bar-label">${n}</span>
@@ -94,13 +96,19 @@ export function createSetupScreen({ expressions, onBegin, onBackGesture }) {
         reading: (reading, result) => {
           if (reading.faceOk) mark('face');
           for (const n of TEST_EXPRESSIONS) {
+            if (!reading.scores) break;
             const v = reading.scores[n];
             setBar($(`setup-fill-${n}`), v);
             $(`setup-val-${n}`).textContent = v === undefined ? '-' : v.toFixed(0);
           }
           $('setup-hold').style.width = `${Math.round(result.holdProgress * 100)}%`;
           if (result.action === 'next') { mark('smile'); flash('😊 Happy expression detected! Great smile.'); }
-          $('setup-eyes').textContent = reading.eyesClosed === null ? 'no data' : reading.eyesClosed ? 'yes' : 'no';
+          const t = performance.now();
+          if (reading.eyesClosed) { if (closedSince === null) closedSince = t; longestClosed = Math.max(longestClosed, t - closedSince); }
+          else if (reading.eyesClosed === false) closedSince = null;
+          $('setup-eyes').textContent = reading.eyesClosed === null
+            ? 'no blink data yet'
+            : `${reading.eyesClosed ? 'yes' : 'no'} · longest so far ${(longestClosed / 1000).toFixed(1)} s`;
           if (result.action === 'back') {
             mark('back');
             flash(expressions.backGesture === 'eyes'

@@ -54,22 +54,55 @@ export function createExpressionControls(overrides = {}) {
     reset();
   }
 
-  function reset() {
+  let lastClosedAt = 0;
+
+  // Clears the expression smoothing (used when the face is lost).
+  function resetExpression() {
     smoothed = {};
     lastTime = null;
     candidate = null;
     candidateSince = 0;
+  }
+
+  function reset() {
+    resetExpression();
     eyesSince = null;
   }
 
+  // Eyes-closed gesture: the SDK blink signal must stay "detected" for about
+  // a second (short gaps under 300 ms are tolerated). Normal quick blinks are
+  // far shorter and are ignored. Returns a snapshot only when it fires.
+  function updateEyes(closed, now) {
+    if (closed) {
+      lastClosedAt = now;
+      if (eyesSince === null) eyesSince = now;
+    } else if (eyesSince === null || now - lastClosedAt > 300) {
+      eyesSince = null;
+      armed.EYES = true;
+    }
+    if (eyesSince !== null && armed.EYES && now >= cooldownUntil && now - eyesSince >= settings.eyesClosedMs) {
+      armed.EYES = false;
+      cooldownUntil = now + settings.cooldownMs;
+      eyesSince = null;
+      return snapshot(now, 'back', 'EYES');
+    }
+    return null;
+  }
+
   /**
-   * @param {{faceOk: boolean, scores: Record<string, number>, eyesClosed?: boolean|null} | null} reading
+   * @param {{faceOk: boolean, scores: Record<string, number>|null, eyesClosed?: boolean|null} | null} reading
    * @param {number} now time in milliseconds
    */
   function update(reading, now) {
+    const eyesMode = settings.backGesture === 'eyes';
+    if (eyesMode && reading && typeof reading.eyesClosed === 'boolean') {
+      const fired = updateEyes(reading.eyesClosed, now);
+      if (fired) return fired;
+    }
+
     if (!reading || !reading.faceOk || !reading.scores) {
-      reset();
-      return snapshot(now, null);
+      resetExpression();
+      return snapshot(now, null, eyesMode && eyesSince !== null ? 'EYES' : null);
     }
 
     const dt = lastTime === null ? Infinity : Math.max(0, now - lastTime);
@@ -85,23 +118,8 @@ export function createExpressionControls(overrides = {}) {
       if ((smoothed[name] ?? 0) < settings.rearmBelow) armed[name] = true;
     }
 
-    // Eyes-closed gesture: the SDK blink signal must stay "detected" for
-    // about a second. Normal quick blinks are far shorter and are ignored.
-    if (settings.backGesture === 'eyes') {
-      if (reading.eyesClosed === true) {
-        if (eyesSince === null) eyesSince = now;
-      } else {
-        eyesSince = null;
-        if (reading.eyesClosed === false) armed.EYES = true;
-      }
-      if (eyesSince !== null && armed.EYES && now >= cooldownUntil && now - eyesSince >= settings.eyesClosedMs) {
-        armed.EYES = false;
-        cooldownUntil = now + settings.cooldownMs;
-        eyesSince = null;
-        return snapshot(now, 'back', 'EYES');
-      }
-      if (eyesSince !== null) return snapshot(now, null, 'EYES');
-    }
+    // While the eyes are closed, ignore expressions.
+    if (eyesMode && eyesSince !== null) return snapshot(now, null, 'EYES');
 
     const top = strongest(smoothed);
     const next = top && top.name in ACTIONS && top.value >= settings.thresholds[top.name] ? top.name : null;
