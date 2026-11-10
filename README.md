@@ -8,16 +8,6 @@ next step, tilt your head to go back a step. Expressions are detected live by th
 
 Built for the Presage SmartSpectra Challenge (#presagechallenge).
 
-> **Status: Phase 3.** The full cooking flow works: Welcome, How to Use, Recipe Selection,
-> Recipe Details, camera setup with a short expression test, cooking mode with live
-> expression controls, a pause/resume timer, and the finished screen. Music, volume
-> controls and extra polish come in Phase 4.
->
-> **Phase 4 added:** background music and sound effects made in code (no audio files, so no
-> licensing questions), the 🎵 button for music on/off, music volume and effects on/off
-> (remembered on this computer), quieter music during cooking, chef idle/reaction
-> animations, a better small-window layout, and a clear message when the camera cannot be
-> used in the current window.
 
 ## Requirements
 
@@ -106,7 +96,7 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
 
 ## Privacy
 
-- The camera only starts when you press **Start camera**, and stops when you press **Stop camera** or close the app.
+- The camera only starts when you press **Allow camera and start**, and stops when you press **Stop camera** or close the app.
 - Kitchen Chaos does not record, save or upload video, and keeps no expression history.
 - According to Presage's documentation, all SmartSpectra metric computation runs on your
   device; the SDK contacts Presage's server to authenticate the API key and validate the subscription.
