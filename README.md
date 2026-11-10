@@ -8,10 +8,9 @@ next step, look surprised to see the step again. Expressions are detected live b
 
 Built for the Presage SmartSpectra Challenge (#presagechallenge).
 
-> **Status: Phase 3.** The full cooking flow works: Welcome, How to Use, Recipe Selection,
-> Recipe Details, camera setup with a short expression test, cooking mode with live
-> expression controls, a pause/resume timer, and the finished screen. Music, volume
-> controls and extra polish come in Phase 4.
+> **Status: Phase 4.** The full cooking flow includes Welcome, How to Use, Recipe Selection,
+> Recipe Details, camera setup with an expression test, live expression controls, cooking
+> timers, a finished screen, original synthesised background music and a volume slider.
 
 ## Requirements
 
@@ -37,7 +36,8 @@ npm start
 Pick a recipe, press **Start Cooking**, then **Allow camera and start**. Smile and hold it for a
 second to tick the test, then cook. In cooking mode: smile for the next step, look surprised
 to repeat a step. The **Back / Repeat / Next** buttons and the keyboard (Left arrow, R,
-Right arrow or Space) always work too.
+Right arrow or Space) always work too. Background music is optional: turn it on with
+**♫ Music: Off** and adjust its volume with the slider. Music stops when cooking ends.
 
 VS Code terminal on macOS/Linux: if the window never opens, run `env -u ELECTRON_RUN_AS_NODE npm start`.
 
@@ -92,7 +92,7 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
 | `src/cooking.js` | Step navigation (next, back, finish). Knows nothing about faces |
 | `src/timer.js` | Countdown with pause and resume; never changes the step by itself |
 | `src/cooking-screen.js` | Cooking mode and timer (screens 6 and 7) |
-| `src/sound.js` | Short sound effects made with Web Audio (no audio files) |
+| `src/sound.js` | Original synthesised background music and sound effects (no external audio files) |
 | `src/app.js` | Screen switching; wires everything together |
 | `build.mjs` | Bundles the window code and preload with esbuild |
 
@@ -107,5 +107,6 @@ can fire again. No face or an unclear expression does nothing. Buttons always wo
   (SDK version, platform, frame counts, error codes) and never video frames, metric values or
   user identifiers. See [SDK Telemetry & Privacy](https://smartspectra.presagetech.com/docs/telemetry-and-privacy).
 - Your API key stays in your local `.env` file, which is never committed.
+- Music is off by default. The volume preference is stored locally in this app; no audio is recorded or sent anywhere.
 
 Kitchen Chaos is not a medical device and makes no health or emotion claims. Expressions are used only as buttons.
